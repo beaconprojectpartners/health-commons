@@ -18,7 +18,9 @@ const STEPS = ["Condition", "Symptoms", "Treatment", "Demographics", "Quality of
 
 const Submit = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
