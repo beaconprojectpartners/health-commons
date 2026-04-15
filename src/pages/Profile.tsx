@@ -189,7 +189,25 @@ const Profile = () => {
                     </>
                   )}
 
-                  <Button
+                  {/* Researcher contact consent */}
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="contact-consent"
+                        checked={contactConsent}
+                        onCheckedChange={(v) => setContactConsent(v === true)}
+                      />
+                      <div>
+                        <label htmlFor="contact-consent" className="text-sm font-medium text-foreground cursor-pointer">
+                          Allow researchers to contact me
+                        </label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          If enabled, verified researchers can message you through CrowdDx to ask follow-up questions about your experience. Your email is never shared — all communication happens through the platform.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                     className="w-full"
                     onClick={() => saveMutation.mutate()}
                     disabled={saveMutation.isPending || (sharingMode === "named" && !displayName)}
