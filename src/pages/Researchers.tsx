@@ -53,6 +53,47 @@ const SignInGate = ({ children, label }: { children: React.ReactNode; label: str
   return <>{children}</>;
 };
 
+const ApiAccessCard = () => {
+  const { isActive, isLoading, openCheckout, openPortal, subscription } = useSubscription();
+
+  if (isLoading) {
+    return <div className="text-center text-sm text-muted-foreground">Loading subscription status…</div>;
+  }
+
+  if (isActive) {
+    return (
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 text-center shadow-card">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <Zap className="h-3.5 w-3.5" /> Active Subscription
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Your API key is available in your researcher profile. Use it with the <code className="rounded bg-secondary px-1 py-0.5 text-xs">x-api-key</code> header.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link to="/profile">
+            <Button variant="outline" size="sm">View API Key</Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={openPortal}>
+            <CreditCard className="mr-1.5 h-3.5 w-3.5" /> Manage Billing
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 text-center shadow-card">
+      <h3 className="mb-2 font-heading text-lg text-foreground">$29.99/month</h3>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Unlimited API calls to scrubbed, anonymized patient-reported datasets. Cancel anytime.
+      </p>
+      <Button onClick={openCheckout} className="gap-2">
+        <CreditCard className="h-4 w-4" /> Subscribe for API Access
+      </Button>
+    </div>
+  );
+};
+
 const Researchers = () => (
   <div className="min-h-screen">
     <Navbar />
