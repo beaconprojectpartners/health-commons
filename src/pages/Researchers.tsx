@@ -3,14 +3,15 @@ import Footer from "@/components/Footer";
 import DatasetSearch from "@/components/DatasetSearch";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock } from "lucide-react";
+import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock, CreditCard, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const features = [
   { icon: Filter, title: "Advanced Filters", desc: "Filter by condition, symptom, treatment, lab result, region, and more." },
   { icon: Download, title: "CSV & JSON Export", desc: "Download filtered datasets with full data dictionaries included." },
-  { icon: Key, title: "API Access", desc: "Programmatic access with rate-limited API keys for your research pipeline." },
-  { icon: Database, title: "Open Data", desc: "No paywalls. Free forever. Attribution to CrowdDx encouraged." },
+  { icon: Key, title: "API Access", desc: "Programmatic access with your API key. Subscription required for API use." },
+  { icon: Database, title: "Free Downloads", desc: "Download filtered datasets for free. API access requires a subscription." },
 ];
 
 const schemaFields = [
@@ -50,6 +51,47 @@ const SignInGate = ({ children, label }: { children: React.ReactNode; label: str
   }
 
   return <>{children}</>;
+};
+
+const ApiAccessCard = () => {
+  const { isActive, isLoading, openCheckout, openPortal, subscription } = useSubscription();
+
+  if (isLoading) {
+    return <div className="text-center text-sm text-muted-foreground">Loading subscription status…</div>;
+  }
+
+  if (isActive) {
+    return (
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-6 text-center shadow-card">
+        <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-sm font-medium text-primary">
+          <Zap className="h-3.5 w-3.5" /> Active Subscription
+        </div>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Your API key is available in your researcher profile. Use it with the <code className="rounded bg-secondary px-1 py-0.5 text-xs">x-api-key</code> header.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Link to="/profile">
+            <Button variant="outline" size="sm">View API Key</Button>
+          </Link>
+          <Button variant="outline" size="sm" onClick={openPortal}>
+            <CreditCard className="mr-1.5 h-3.5 w-3.5" /> Manage Billing
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 text-center shadow-card">
+      <h3 className="mb-2 font-heading text-lg text-foreground">$29.99/month</h3>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Unlimited API calls to scrubbed, anonymized patient-reported datasets. Cancel anytime.
+      </p>
+      <Button onClick={openCheckout} className="gap-2">
+        <CreditCard className="h-4 w-4" /> Subscribe for API Access
+      </Button>
+    </div>
+  );
 };
 
 const Researchers = () => (
@@ -158,6 +200,24 @@ const Researchers = () => (
                 </tbody>
               </table>
             </div>
+          </SignInGate>
+        </div>
+      </div>
+    </section>
+
+    {/* API Access & Subscription — gated */}
+    <section className="border-t border-border py-16">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-6 text-center">
+            <Zap className="mx-auto mb-3 h-8 w-8 text-primary" />
+            <h2 className="mb-2 font-heading text-2xl text-foreground">API Access</h2>
+            <p className="text-sm text-muted-foreground">
+              Programmatic access to scrubbed, anonymized datasets. Downloads are free — API access requires a $29.99/month subscription.
+            </p>
+          </div>
+          <SignInGate label="API subscription management">
+            <ApiAccessCard />
           </SignInGate>
         </div>
       </div>
