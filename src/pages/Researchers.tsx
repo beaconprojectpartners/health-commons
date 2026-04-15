@@ -83,7 +83,7 @@ const ApiAccessCard = () => {
 
   return (
     <div className="rounded-xl border border-border bg-card p-6 text-center shadow-card">
-      <h3 className="mb-2 font-heading text-lg text-foreground">$29.99/month</h3>
+      <h3 className="mb-2 font-heading text-lg text-foreground">$5/month</h3>
       <p className="mb-4 text-sm text-muted-foreground">
         Unlimited API calls to scrubbed, anonymized patient-reported datasets. Cancel anytime.
       </p>
@@ -213,7 +213,7 @@ const Researchers = () => (
             <Zap className="mx-auto mb-3 h-8 w-8 text-primary" />
             <h2 className="mb-2 font-heading text-2xl text-foreground">API Access</h2>
             <p className="text-sm text-muted-foreground">
-              Programmatic access to scrubbed, anonymized datasets. Downloads are free — API access requires a $29.99/month subscription.
+              Programmatic access to scrubbed, anonymized datasets. Downloads are free — API access requires a $5/month subscription.
             </p>
           </div>
           <SignInGate label="API subscription management">
