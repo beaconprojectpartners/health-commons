@@ -16,6 +16,22 @@ const Auth = () => {
   const [tab, setTab] = useState("signin");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: window.location.origin,
+    });
+    if (result.error) {
+      toast({ title: "Error", description: String(result.error), variant: "destructive" });
+      setGoogleLoading(false);
+      return;
+    }
+    if (result.redirected) return;
+    toast({ title: "Welcome!" });
+    navigate("/");
+  };
 
   // Sign In
   const [signInEmail, setSignInEmail] = useState("");
