@@ -1,36 +1,74 @@
-import { ClipboardList, Database, Download } from "lucide-react";
+import { ClipboardList, Database, Download, Users, FlaskConical, HandHeart } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
 
-const steps = [
+const pathways = [
   {
-    icon: ClipboardList,
-    title: "Patients Share",
-    desc: "Submit your diagnosis journey, symptoms, treatments, and outcomes — anonymously, at your own pace.",
+    role: "Patient",
+    icon: HandHeart,
+    color: "text-primary",
+    bg: "bg-primary/10",
+    steps: [
+      "Create a free account",
+      "Choose your condition(s)",
+      "Share symptoms, treatments & outcomes",
+      "Optionally enable your profile to connect with others",
+    ],
+    cta: { label: "Share Your Story", to: "/submit" },
   },
   {
-    icon: Database,
-    title: "Specialists Define",
-    desc: "Medical specialists build structured disease profiles — the labs, imaging, and criteria that matter for each condition.",
+    role: "Specialist",
+    icon: FlaskConical,
+    color: "text-emerald-500",
+    bg: "bg-emerald-500/10",
+    steps: [
+      "Sign in and request specialist access",
+      "Select a condition to define",
+      "Build structured disease profiles (labs, imaging, criteria)",
+      "Submit for review and community use",
+    ],
+    cta: { label: "Get Started", to: "/auth" },
   },
   {
+    role: "Researcher",
     icon: Download,
-    title: "Researchers Access",
-    desc: "Create a free account to filter, explore, and export the full dataset as CSV or JSON. No paywalls.",
+    color: "text-blue-500",
+    bg: "bg-blue-500/10",
+    steps: [
+      "Register with your institution details",
+      "Browse conditions and anonymized submissions",
+      "Use the AI-powered dataset discovery tool",
+      "Export filtered data as CSV or JSON — free",
+    ],
+    cta: { label: "Access the Data", to: "/researchers" },
   },
 ];
 
 const HowItWorks = () => (
   <section className="border-y border-border bg-secondary/30 py-16">
     <div className="container mx-auto px-4">
-      <h2 className="mb-12 text-center text-3xl text-foreground">How It Works</h2>
+      <h2 className="mb-4 text-center text-3xl text-foreground">Your Pathway</h2>
+      <p className="mb-12 text-center text-muted-foreground">Choose the journey that fits your role</p>
       <div className="grid gap-8 md:grid-cols-3">
-        {steps.map(({ icon: Icon, title, desc }, i) => (
-          <div key={title} className="text-center">
-            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-primary/10">
-              <Icon className="h-6 w-6 text-primary" />
+        {pathways.map(({ role, icon: Icon, color, bg, steps, cta }) => (
+          <div key={role} className="rounded-xl border border-border bg-card p-6 shadow-card">
+            <div className={`mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-xl ${bg}`}>
+              <Icon className={`h-6 w-6 ${color}`} />
             </div>
-            <div className="mb-1 text-xs font-medium text-primary">Step {i + 1}</div>
-            <h3 className="mb-2 font-heading text-xl text-foreground">{title}</h3>
-            <p className="text-sm text-muted-foreground">{desc}</p>
+            <h3 className="mb-4 text-center font-heading text-xl text-foreground">{role}</h3>
+            <ol className="mb-6 space-y-3">
+              {steps.map((step, i) => (
+                <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${color === "text-primary" ? "bg-primary" : color === "text-emerald-500" ? "bg-emerald-500" : "bg-blue-500"}`}>
+                    {i + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+            <Link to={cta.to} className="block">
+              <Button variant="outline" className="w-full">{cta.label}</Button>
+            </Link>
           </div>
         ))}
       </div>
