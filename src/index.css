@@ -62,7 +62,7 @@
     --shadow-lg: 0 12px 40px -8px hsl(210 15% 12% / 0.12);
 
     --font-heading: 'Righteous', cursive;
-    --font-body: 'Inter', sans-serif;
+    --font-body: 'Poppins', sans-serif;
   }
 
   .dark {
