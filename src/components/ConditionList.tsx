@@ -58,7 +58,7 @@ const ConditionList = () => {
             {filtered?.map((condition) => (
               <Link
                 key={condition.id}
-                to={`/submit?condition=${condition.id}`}
+                to={`/conditions/${condition.slug}`}
                 className="group flex items-center justify-between rounded-lg border border-border bg-card p-4 shadow-card transition-all hover:border-primary/30 hover:shadow-elevated"
               >
                 <div>
