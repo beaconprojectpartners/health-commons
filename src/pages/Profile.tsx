@@ -208,7 +208,7 @@ const Profile = () => {
                     </div>
                   </div>
 
-                    className="w-full"
+                  <Button
                     onClick={() => saveMutation.mutate()}
                     disabled={saveMutation.isPending || (sharingMode === "named" && !displayName)}
                   >
