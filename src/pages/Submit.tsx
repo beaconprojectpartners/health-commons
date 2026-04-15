@@ -101,6 +101,7 @@ const Submit = () => {
       condition_id: conditionId,
       universal_fields: universalFields,
       sharing_preference: sharingPref,
+      submitter_account_id: user?.id || null,
     });
 
     if (error) {
