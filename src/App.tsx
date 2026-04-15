@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Index from "./pages/Index";
 import Conditions from "./pages/Conditions";
+import ConditionDetail from "./pages/ConditionDetail";
 import Submit from "./pages/Submit";
 import Researchers from "./pages/Researchers";
 import Auth from "./pages/Auth";
@@ -23,6 +24,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/conditions" element={<Conditions />} />
+          <Route path="/conditions/:slug" element={<ConditionDetail />} />
           <Route path="/submit" element={<Submit />} />
           <Route path="/researchers" element={<Researchers />} />
           <Route path="/auth" element={<Auth />} />
