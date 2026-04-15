@@ -23,6 +23,7 @@ const Profile = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [sharingMode, setSharingMode] = useState("anonymous");
+  const [contactConsent, setContactConsent] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
   useEffect(() => {
@@ -57,17 +58,19 @@ const Profile = () => {
       setDisplayName(profile.display_name || "");
       setBio(profile.bio || "");
       setSharingMode(profile.sharing_mode);
+      setContactConsent(!!(profile as any).contact_consent);
       setAgreedTerms(true);
     }
   }, [profile]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const payload: any = {
         user_id: user!.id,
         display_name: sharingMode === "named" ? displayName : null,
         bio: sharingMode === "named" ? bio : null,
         sharing_mode: sharingMode,
+        contact_consent: contactConsent,
       };
 
       if (profile) {
