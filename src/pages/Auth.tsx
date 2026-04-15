@@ -17,15 +17,17 @@ const Auth = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const [googleLoading, setGoogleLoading] = useState(false);
+  const [appleLoading, setAppleLoading] = useState(false);
 
-  const handleGoogleSignIn = async () => {
-    setGoogleLoading(true);
-    const result = await lovable.auth.signInWithOAuth("google", {
+  const handleOAuthSignIn = async (provider: "google" | "apple") => {
+    const setLoading = provider === "google" ? setGoogleLoading : setAppleLoading;
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth(provider, {
       redirect_uri: window.location.origin,
     });
     if (result.error) {
       toast({ title: "Error", description: String(result.error), variant: "destructive" });
-      setGoogleLoading(false);
+      setLoading(false);
       return;
     }
     if (result.redirected) return;
