@@ -3,14 +3,15 @@ import Footer from "@/components/Footer";
 import DatasetSearch from "@/components/DatasetSearch";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock } from "lucide-react";
+import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock, CreditCard, Zap } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useSubscription } from "@/hooks/useSubscription";
 
 const features = [
   { icon: Filter, title: "Advanced Filters", desc: "Filter by condition, symptom, treatment, lab result, region, and more." },
   { icon: Download, title: "CSV & JSON Export", desc: "Download filtered datasets with full data dictionaries included." },
-  { icon: Key, title: "API Access", desc: "Programmatic access with rate-limited API keys for your research pipeline." },
-  { icon: Database, title: "Open Data", desc: "No paywalls. Free forever. Attribution to CrowdDx encouraged." },
+  { icon: Key, title: "API Access", desc: "Programmatic access with your API key. Subscription required for API use." },
+  { icon: Database, title: "Free Downloads", desc: "Download filtered datasets for free. API access requires a subscription." },
 ];
 
 const schemaFields = [
@@ -158,6 +159,24 @@ const Researchers = () => (
                 </tbody>
               </table>
             </div>
+          </SignInGate>
+        </div>
+      </div>
+    </section>
+
+    {/* API Access & Subscription — gated */}
+    <section className="border-t border-border py-16">
+      <div className="container mx-auto px-4">
+        <div className="mx-auto max-w-3xl">
+          <div className="mb-6 text-center">
+            <Zap className="mx-auto mb-3 h-8 w-8 text-primary" />
+            <h2 className="mb-2 font-heading text-2xl text-foreground">API Access</h2>
+            <p className="text-sm text-muted-foreground">
+              Programmatic access to scrubbed, anonymized datasets. Downloads are free — API access requires a $29.99/month subscription.
+            </p>
+          </div>
+          <SignInGate label="API subscription management">
+            <ApiAccessCard />
           </SignInGate>
         </div>
       </div>
