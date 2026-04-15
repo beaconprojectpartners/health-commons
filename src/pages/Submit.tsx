@@ -131,8 +131,28 @@ const Submit = () => {
     );
   }
 
+  // Auth gate
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <section className="flex min-h-[60vh] items-center justify-center py-16">
+          <div className="mx-auto max-w-md text-center">
+            <h1 className="mb-3 font-heading text-3xl text-foreground">Sign In Required</h1>
+            <p className="mb-6 text-muted-foreground">
+              You need an account to submit data. This helps us maintain data quality and lets you update your submissions later.
+            </p>
+            <Link to="/auth">
+              <Button>Sign In or Create Account</Button>
+            </Link>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen">
       <Navbar />
       <section className="py-12">
         <div className="container mx-auto px-4">
