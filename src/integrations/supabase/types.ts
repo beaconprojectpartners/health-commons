@@ -144,10 +144,49 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read_at: string | null
+          receiver_id: string
+          sender_id: string
+          wave_id: string | null
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_id: string
+          sender_id: string
+          wave_id?: string | null
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read_at?: string | null
+          receiver_id?: string
+          sender_id?: string
+          wave_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "messages_wave_id_fkey"
+            columns: ["wave_id"]
+            isOneToOne: false
+            referencedRelation: "waves"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_profiles: {
         Row: {
           bio: string | null
           condition_ids: string[] | null
+          contact_consent: boolean
           created_at: string
           display_name: string | null
           id: string
@@ -158,6 +197,7 @@ export type Database = {
         Insert: {
           bio?: string | null
           condition_ids?: string[] | null
+          contact_consent?: boolean
           created_at?: string
           display_name?: string | null
           id?: string
@@ -168,6 +208,7 @@ export type Database = {
         Update: {
           bio?: string | null
           condition_ids?: string[] | null
+          contact_consent?: boolean
           created_at?: string
           display_name?: string | null
           id?: string
