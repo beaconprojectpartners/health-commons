@@ -14,6 +14,41 @@ export type Database = {
   }
   public: {
     Tables: {
+      api_usage: {
+        Row: {
+          billed: boolean | null
+          called_at: string
+          endpoint: string
+          id: string
+          researcher_id: string
+          response_rows: number | null
+        }
+        Insert: {
+          billed?: boolean | null
+          called_at?: string
+          endpoint: string
+          id?: string
+          researcher_id: string
+          response_rows?: number | null
+        }
+        Update: {
+          billed?: boolean | null
+          called_at?: string
+          endpoint?: string
+          id?: string
+          researcher_id?: string
+          response_rows?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "api_usage_researcher_id_fkey"
+            columns: ["researcher_id"]
+            isOneToOne: false
+            referencedRelation: "researchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conditions: {
         Row: {
           approved: boolean | null
@@ -337,6 +372,54 @@ export type Database = {
           },
         ]
       }
+      subscriptions: {
+        Row: {
+          cancel_at_period_end: boolean | null
+          created_at: string | null
+          current_period_end: string | null
+          current_period_start: string | null
+          environment: string
+          id: string
+          price_id: string
+          product_id: string
+          status: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id: string
+          product_id: string
+          status?: string
+          stripe_customer_id: string
+          stripe_subscription_id: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          cancel_at_period_end?: boolean | null
+          created_at?: string | null
+          current_period_end?: string | null
+          current_period_start?: string | null
+          environment?: string
+          id?: string
+          price_id?: string
+          product_id?: string
+          status?: string
+          stripe_customer_id?: string
+          stripe_subscription_id?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -387,6 +470,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      has_active_subscription: {
+        Args: { check_env?: string; user_uuid: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
