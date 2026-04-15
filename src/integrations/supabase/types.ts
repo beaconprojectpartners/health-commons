@@ -14,16 +14,288 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conditions: {
+        Row: {
+          approved: boolean | null
+          created_at: string | null
+          created_by: string | null
+          icd10_code: string | null
+          id: string
+          name: string
+          slug: string
+          submission_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          approved?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          icd10_code?: string | null
+          id?: string
+          name: string
+          slug: string
+          submission_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          approved?: boolean | null
+          created_at?: string | null
+          created_by?: string | null
+          icd10_code?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          submission_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      disease_profiles: {
+        Row: {
+          approved_at: string | null
+          citation: string | null
+          condition_id: string
+          contributor: string | null
+          contributor_id: string | null
+          created_at: string | null
+          criteria: Json | null
+          id: string
+          imaging: Json | null
+          labs: Json | null
+          scoring_tools: Json | null
+          status: string | null
+          updated_at: string | null
+          version: number | null
+        }
+        Insert: {
+          approved_at?: string | null
+          citation?: string | null
+          condition_id: string
+          contributor?: string | null
+          contributor_id?: string | null
+          created_at?: string | null
+          criteria?: Json | null
+          id?: string
+          imaging?: Json | null
+          labs?: Json | null
+          scoring_tools?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Update: {
+          approved_at?: string | null
+          citation?: string | null
+          condition_id?: string
+          contributor?: string | null
+          contributor_id?: string | null
+          created_at?: string | null
+          criteria?: Json | null
+          id?: string
+          imaging?: Json | null
+          labs?: Json | null
+          scoring_tools?: Json | null
+          status?: string | null
+          updated_at?: string | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "disease_profiles_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      download_log: {
+        Row: {
+          condition_filter: string | null
+          export_format: string | null
+          exported_at: string | null
+          id: string
+          researcher_id: string
+          row_count: number | null
+        }
+        Insert: {
+          condition_filter?: string | null
+          export_format?: string | null
+          exported_at?: string | null
+          id?: string
+          researcher_id: string
+          row_count?: number | null
+        }
+        Update: {
+          condition_filter?: string | null
+          export_format?: string | null
+          exported_at?: string | null
+          id?: string
+          researcher_id?: string
+          row_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "download_log_researcher_id_fkey"
+            columns: ["researcher_id"]
+            isOneToOne: false
+            referencedRelation: "researchers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      researchers: {
+        Row: {
+          agreed_terms_at: string
+          api_key: string | null
+          created_at: string | null
+          id: string
+          institution: string | null
+          intended_use: string | null
+          name: string
+          orcid: string | null
+          research_focus: string | null
+          revoked_at: string | null
+          user_id: string
+        }
+        Insert: {
+          agreed_terms_at?: string
+          api_key?: string | null
+          created_at?: string | null
+          id?: string
+          institution?: string | null
+          intended_use?: string | null
+          name: string
+          orcid?: string | null
+          research_focus?: string | null
+          revoked_at?: string | null
+          user_id: string
+        }
+        Update: {
+          agreed_terms_at?: string
+          api_key?: string | null
+          created_at?: string | null
+          id?: string
+          institution?: string | null
+          intended_use?: string | null
+          name?: string
+          orcid?: string | null
+          research_focus?: string | null
+          revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      submission_pii: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          id: string
+          submission_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          submission_id: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string | null
+          id?: string
+          submission_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submission_pii_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      submissions: {
+        Row: {
+          condition_id: string
+          dynamic_fields: Json | null
+          id: string
+          profile_version_id: string | null
+          sharing_preference: string | null
+          submitted_at: string | null
+          submitter_account_id: string | null
+          universal_fields: Json
+        }
+        Insert: {
+          condition_id: string
+          dynamic_fields?: Json | null
+          id?: string
+          profile_version_id?: string | null
+          sharing_preference?: string | null
+          submitted_at?: string | null
+          submitter_account_id?: string | null
+          universal_fields?: Json
+        }
+        Update: {
+          condition_id?: string
+          dynamic_fields?: Json | null
+          id?: string
+          profile_version_id?: string | null
+          sharing_preference?: string | null
+          submitted_at?: string | null
+          submitter_account_id?: string | null
+          universal_fields?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "submissions_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "submissions_profile_version_id_fkey"
+            columns: ["profile_version_id"]
+            isOneToOne: false
+            referencedRelation: "disease_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "specialist" | "researcher"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +422,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "specialist", "researcher"],
+    },
   },
 } as const
