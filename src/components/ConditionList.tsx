@@ -29,7 +29,7 @@ const ConditionList = () => {
     <section className="py-16" id="conditions">
       <div className="container mx-auto px-4">
         <div className="mb-8 text-center">
-          <h2 className="mb-3 text-3xl text-foreground">Condition Registry</h2>
+          <h2 className="mb-3 text-3xl text-foreground">CrowdDx</h2>
           <p className="text-muted-foreground">
             Browse tracked conditions or submit data for any of them
           </p>
