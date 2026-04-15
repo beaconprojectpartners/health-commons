@@ -14,7 +14,7 @@ export default {
     },
     extend: {
       fontFamily: {
-        heading: ['DM Serif Display', 'serif'],
+        heading: ['Righteous', 'cursive'],
         body: ['Inter', 'sans-serif'],
       },
       colors: {
