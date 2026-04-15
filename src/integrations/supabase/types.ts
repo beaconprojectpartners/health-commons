@@ -144,6 +144,39 @@ export type Database = {
           },
         ]
       }
+      patient_profiles: {
+        Row: {
+          bio: string | null
+          condition_ids: string[] | null
+          created_at: string
+          display_name: string | null
+          id: string
+          sharing_mode: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bio?: string | null
+          condition_ids?: string[] | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          sharing_mode?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bio?: string | null
+          condition_ids?: string[] | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          sharing_mode?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       researchers: {
         Row: {
           agreed_terms_at: string
@@ -278,6 +311,33 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
+        }
+        Relationships: []
+      }
+      waves: {
+        Row: {
+          condition_id: string
+          created_at: string
+          from_user_id: string
+          id: string
+          seen_at: string | null
+          to_user_id: string
+        }
+        Insert: {
+          condition_id: string
+          created_at?: string
+          from_user_id: string
+          id?: string
+          seen_at?: string | null
+          to_user_id: string
+        }
+        Update: {
+          condition_id?: string
+          created_at?: string
+          from_user_id?: string
+          id?: string
+          seen_at?: string | null
+          to_user_id?: string
         }
         Relationships: []
       }
