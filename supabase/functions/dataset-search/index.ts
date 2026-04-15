@@ -1,0 +1,126 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.103.1";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+};
+
+serve(async (req) => {
+  if (req.method === "OPTIONS")
+    return new Response(null, { headers: corsHeaders });
+
+  try {
+    const { query } = await req.json();
+    if (!query || typeof query !== "string" || query.length > 500) {
+      return new Response(
+        JSON.stringify({ error: "Please provide a search query (max 500 chars)." }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    // Fetch conditions and submission stats for context
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseKey = Deno.env.get("SUPABASE_PUBLISHABLE_KEY")!;
+    const sb = createClient(supabaseUrl, supabaseKey);
+
+    const { data: conditions } = await sb
+      .from("conditions")
+      .select("name, slug, submission_count, icd10_code")
+      .eq("approved", true)
+      .order("name");
+
+    const conditionContext = (conditions || [])
+      .map((c: any) => `- ${c.name} (ICD-10: ${c.icd10_code || "N/A"}, ${c.submission_count || 0} submissions, slug: ${c.slug})`)
+      .join("\n");
+
+    const systemPrompt = `You are CrowdDx Dataset Assistant, helping researchers find relevant patient-reported data in the CrowdDx open dataset.
+
+AVAILABLE CONDITIONS:
+${conditionContext}
+
+DATA SCHEMA (per submission):
+- condition_id: UUID linking to a condition
+- universal_fields (JSONB):
+  - diagnosis_status: confirmed | suspected | self-diagnosed | ruled-out
+  - year_of_diagnosis: string
+  - time_to_diagnosis: <6months | 6-12months | 1-3years | 3-5years | 5-10years | 10+years
+  - providers_count: number of providers seen before diagnosis
+  - misdiagnoses: comma-separated list
+  - symptoms[]: { name, severity (1-10), frequency (constant|daily|weekly|episodic|intermittent), bodySystem }
+  - treatments[]: { name, type (pharmaceutical|surgical|physical-therapy|dietary|supplement|lifestyle|other), effectiveness (1-10), sideEffects }
+  - demographics: { age_range, biological_sex, country }
+  - quality_of_life: { work_impact, pain_avg (1-10), fatigue_avg (1-10), mental_health_impact (1-10) }
+  - submitter_type: patient | caregiver
+- sharing_preference: anonymized_public | research_only | private
+- submitted_at: timestamp
+
+IMPORTANT DISCLAIMERS (include in every response):
+- CrowdDx is NOT a healthcare provider and does not diagnose conditions.
+- All data is patient-reported and self-selected; it is NOT a representative clinical sample.
+- Data should be used at the researcher's discretion with appropriate statistical caveats.
+- Submissions may contain inaccuracies, duplicates, or biased reporting.
+
+Help the researcher by:
+1. Identifying which conditions/data fields are relevant to their question
+2. Suggesting filter strategies (by condition, symptom, demographics, etc.)
+3. Noting dataset limitations relevant to their specific research question
+4. Providing the schema fields they'd need to query
+
+Be concise and scientific in tone.`;
+
+    const response = await fetch(
+      "https://ai.gateway.lovable.dev/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: query },
+          ],
+          stream: true,
+        }),
+      }
+    );
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return new Response(
+          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      if (response.status === 402) {
+        return new Response(
+          JSON.stringify({ error: "AI service temporarily unavailable." }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const t = await response.text();
+      console.error("AI gateway error:", response.status, t);
+      return new Response(
+        JSON.stringify({ error: "AI service error" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    return new Response(response.body, {
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    });
+  } catch (e) {
+    console.error("dataset-search error:", e);
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+});
