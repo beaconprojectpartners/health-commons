@@ -47,7 +47,8 @@ const Auth = () => {
     });
     setSignInLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error("[Auth] sign-in error:", error);
+      toast({ title: "Sign in failed", description: "Invalid email or password. Please try again.", variant: "destructive" });
     } else {
       toast({ title: "Welcome back!" });
       navigate("/");
@@ -80,7 +81,8 @@ const Auth = () => {
     });
 
     if (authError) {
-      toast({ title: "Error", description: authError.message, variant: "destructive" });
+      console.error("[Auth] sign-up error:", authError);
+      toast({ title: "Registration failed", description: "Please check your details and try again.", variant: "destructive" });
       setSignUpLoading(false);
       return;
     }
