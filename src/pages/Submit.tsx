@@ -1,8 +1,9 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,7 +18,9 @@ const STEPS = ["Condition", "Symptoms", "Treatment", "Demographics", "Quality of
 
 const Submit = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
+  const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
 
@@ -98,6 +101,7 @@ const Submit = () => {
       condition_id: conditionId,
       universal_fields: universalFields,
       sharing_preference: sharingPref,
+      submitter_account_id: user?.id || null,
     });
 
     if (error) {
@@ -120,6 +124,27 @@ const Submit = () => {
               {selectedCondition?.name || "this condition"}.
             </p>
             <Button onClick={() => { setSubmitted(false); setStep(0); }}>Submit Another</Button>
+          </div>
+        </section>
+        <Footer />
+      </div>
+    );
+  }
+
+  // Auth gate
+  if (!authLoading && !user) {
+    return (
+      <div className="min-h-screen">
+        <Navbar />
+        <section className="flex min-h-[60vh] items-center justify-center py-16">
+          <div className="mx-auto max-w-md text-center">
+            <h1 className="mb-3 font-heading text-3xl text-foreground">Sign In Required</h1>
+            <p className="mb-6 text-muted-foreground">
+              You need an account to submit data. This helps us maintain data quality and lets you update your submissions later.
+            </p>
+            <Link to="/auth">
+              <Button>Sign In or Create Account</Button>
+            </Link>
           </div>
         </section>
         <Footer />

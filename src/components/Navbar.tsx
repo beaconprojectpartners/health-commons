@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Heart, Menu, X } from "lucide-react";
+import { Heart, Menu, X, LogOut, User } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
+  const { user, loading, signOut } = useAuth();
 
   return (
     <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
@@ -22,12 +24,30 @@ const Navbar = () => {
           <Link to="/submit" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             Submit Data
           </Link>
+          <Link to="/community" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Community
+          </Link>
           <Link to="/researchers" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             For Researchers
           </Link>
-          <Link to="/auth">
-            <Button size="sm">Sign In</Button>
-          </Link>
+          {!loading && (
+            user ? (
+              <div className="flex items-center gap-3">
+                <Link to="/profile">
+                  <Button size="sm" variant="outline">
+                    <User className="mr-1.5 h-4 w-4" /> Profile
+                  </Button>
+                </Link>
+                <Button size="sm" variant="ghost" onClick={signOut}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <Link to="/auth">
+                <Button size="sm">Sign In</Button>
+              </Link>
+            )
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -42,10 +62,20 @@ const Navbar = () => {
           <div className="flex flex-col gap-3">
             <Link to="/conditions" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Conditions</Link>
             <Link to="/submit" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Submit Data</Link>
+            <Link to="/community" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Community</Link>
             <Link to="/researchers" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">For Researchers</Link>
-            <Link to="/auth" onClick={() => setOpen(false)}>
-              <Button size="sm" className="w-full">Sign In</Button>
-            </Link>
+            {!loading && (
+              user ? (
+                <>
+                  <Link to="/profile" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Profile</Link>
+                  <Button size="sm" variant="ghost" onClick={() => { signOut(); setOpen(false); }}>Sign Out</Button>
+                </>
+              ) : (
+                <Link to="/auth" onClick={() => setOpen(false)}>
+                  <Button size="sm" className="w-full">Sign In</Button>
+                </Link>
+              )
+            )}
           </div>
         </div>
       )}
