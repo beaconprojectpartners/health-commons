@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         heading: ['Righteous', 'cursive'],
-        body: ['Inter', 'sans-serif'],
+        body: ['Poppins', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",

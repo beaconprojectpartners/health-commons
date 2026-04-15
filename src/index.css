@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Righteous&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Righteous&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -62,7 +62,7 @@
     --shadow-lg: 0 12px 40px -8px hsl(210 15% 12% / 0.12);
 
     --font-heading: 'Righteous', cursive;
-    --font-body: 'Inter', sans-serif;
+    --font-body: 'Poppins', sans-serif;
   }
 
   .dark {
