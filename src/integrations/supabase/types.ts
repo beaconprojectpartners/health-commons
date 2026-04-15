@@ -470,6 +470,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_my_condition_ids: { Args: { _user_id: string }; Returns: string[] }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
         Returns: boolean
