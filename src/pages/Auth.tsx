@@ -184,7 +184,7 @@ const Auth = () => {
                     <div className="flex items-start gap-2">
                       <Checkbox id="terms" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
                       <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight">
-                        I agree to use this data only for research purposes. Data is anonymized, not for re-identification or commercial resale. Attribution to workingTitle is encouraged.
+                        I agree to use this data only for research purposes. Data is anonymized, not for re-identification or commercial resale. Attribution to CrowdDx is encouraged.
                       </label>
                     </div>
                     <Button type="submit" className="w-full" disabled={signUpLoading || !agreed}>

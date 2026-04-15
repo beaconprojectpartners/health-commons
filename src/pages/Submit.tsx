@@ -105,7 +105,8 @@ const Submit = () => {
     });
 
     if (error) {
-      toast({ title: "Submission failed", description: error.message, variant: "destructive" });
+      console.error("[Submit] insert error:", error);
+      toast({ title: "Submission failed", description: "Please try again. Contact support if the issue persists.", variant: "destructive" });
     } else {
       setSubmitted(true);
     }
