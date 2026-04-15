@@ -83,7 +83,8 @@ const Profile = () => {
       toast({ title: "Profile saved!" });
     },
     onError: (err: any) => {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      console.error("[Profile] save error:", err);
+      toast({ title: "Error saving profile", description: "Please try again. Contact support if the issue persists.", variant: "destructive" });
     },
   });
 
@@ -137,7 +138,7 @@ const Profile = () => {
                       <li>• You can choose to share a named profile so others with the same condition can connect with you.</li>
                       <li>• You can delete your profile and all associated data at any time.</li>
                       <li>• Data will not be sold or used for re-identification.</li>
-                      <li>• Attribution to workingTitle is encouraged in publications.</li>
+                      <li>• Attribution to CrowdDx is encouraged in publications.</li>
                     </ul>
                   </div>
                 </div>

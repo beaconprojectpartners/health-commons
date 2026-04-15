@@ -47,7 +47,8 @@ const Auth = () => {
     });
     setSignInLoading(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      console.error("[Auth] sign-in error:", error);
+      toast({ title: "Sign in failed", description: "Invalid email or password. Please try again.", variant: "destructive" });
     } else {
       toast({ title: "Welcome back!" });
       navigate("/");
@@ -80,7 +81,8 @@ const Auth = () => {
     });
 
     if (authError) {
-      toast({ title: "Error", description: authError.message, variant: "destructive" });
+      console.error("[Auth] sign-up error:", authError);
+      toast({ title: "Registration failed", description: "Please check your details and try again.", variant: "destructive" });
       setSignUpLoading(false);
       return;
     }
@@ -184,7 +186,7 @@ const Auth = () => {
                     <div className="flex items-start gap-2">
                       <Checkbox id="terms" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
                       <label htmlFor="terms" className="text-xs text-muted-foreground leading-tight">
-                        I agree to use this data only for research purposes. Data is anonymized, not for re-identification or commercial resale. Attribution to workingTitle is encouraged.
+                        I agree to use this data only for research purposes. Data is anonymized, not for re-identification or commercial resale. Attribution to CrowdDx is encouraged.
                       </label>
                     </div>
                     <Button type="submit" className="w-full" disabled={signUpLoading || !agreed}>

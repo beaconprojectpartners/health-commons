@@ -8,7 +8,7 @@ const Footer = () => (
         <div>
           <div className="mb-3 flex items-center gap-2">
             <Heart className="h-5 w-5 text-primary" />
-            <span className="font-heading text-lg text-foreground">workingTitle</span>
+            <span className="font-heading text-lg text-foreground">CrowdDx</span>
           </div>
           <p className="text-sm text-muted-foreground">
             Crowdsourced medical data for researchers. Built by patients, for science.
@@ -30,7 +30,7 @@ const Footer = () => (
         </div>
       </div>
       <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} workingTitle · Open-source medical research data
+        © {new Date().getFullYear()} CrowdDx · Open-source medical research data
       </div>
     </div>
   </footer>

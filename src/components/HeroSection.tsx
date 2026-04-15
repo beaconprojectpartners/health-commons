@@ -13,12 +13,11 @@ const HeroSection = () => (
           Open-source · Privacy-first · Patient-driven
         </div>
         <h1 className="mb-6 text-4xl leading-tight text-foreground md:text-6xl">
-          Your experience matters.{" "}
-          <span className="text-primary">Science needs your data.</span>
+          One patient's story is anecdotal.{" "}
+          <span className="text-primary">A million patients' stories are a dataset.</span>
         </h1>
         <p className="mb-10 text-lg text-muted-foreground md:text-xl">
-          Share your diagnosis journey anonymously. Help researchers understand rare and
-          chronic conditions through real patient experiences — no gatekeepers, no paywalls.
+          CrowdDx crowdsources real-world symptom and treatment data into open, global research.
         </p>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link to="/submit">
