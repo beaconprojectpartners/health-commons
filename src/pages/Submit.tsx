@@ -153,6 +153,7 @@ const Submit = () => {
   }
 
   return (
+    <div className="min-h-screen">
       <Navbar />
       <section className="py-12">
         <div className="container mx-auto px-4">
