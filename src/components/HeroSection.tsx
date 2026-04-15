@@ -12,12 +12,12 @@ const HeroSection = () => (
           <Shield className="h-3.5 w-3.5" />
           Open-source · Privacy-first · Patient-driven
         </div>
-        <h1 className="mb-6 text-4xl leading-tight text-foreground md:text-6xl">
-          One patient's story is anecdotal.{" "}
-          <span className="text-primary">A million patients' stories are a dataset.</span>
+        <h1 className="mb-4 text-5xl font-extrabold tracking-tight text-foreground md:text-7xl lg:text-8xl">
+          CrowdDx
         </h1>
-        <p className="mb-10 text-lg text-muted-foreground md:text-xl">
-          CrowdDx crowdsources real-world symptom and treatment data into open, global research.
+        <p className="mb-10 text-lg text-muted-foreground md:text-xl lg:text-2xl">
+          One patient's story is anecdotal.{" "}
+          <span className="text-primary font-semibold">A million patients' stories are a dataset.</span>
         </p>
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
           <Link to="/submit">
