@@ -1,5 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import SimpleChat from "@/components/SimpleChat";
 import { useAuth } from "@/hooks/useAuth";
 import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -8,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Hand, Users } from "lucide-react";
+import { Hand, MessageCircle, Users } from "lucide-react";
 
 const Community = () => {
   const { user, loading } = useAuth();
@@ -16,6 +17,7 @@ const Community = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [conditionFilter, setConditionFilter] = useState("all");
+  const [chatWith, setChatWith] = useState<{ userId: string; name: string } | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -40,7 +42,6 @@ const Community = () => {
         .eq("sharing_mode", "named")
         .neq("user_id", user!.id);
       if (error) throw error;
-      // Filter by condition if selected
       if (conditionFilter !== "all") {
         return data?.filter((p: any) => p.condition_ids?.includes(conditionFilter)) || [];
       }
@@ -52,10 +53,7 @@ const Community = () => {
     queryKey: ["my-waves", user?.id],
     enabled: !!user,
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("waves")
-        .select("*")
-        .eq("from_user_id", user!.id);
+      const { data, error } = await supabase.from("waves").select("*").eq("from_user_id", user!.id);
       if (error) throw error;
       return data;
     },
@@ -92,12 +90,19 @@ const Community = () => {
       if (err.message?.includes("duplicate")) {
         toast({ title: "Already waved", description: "You've already waved at this person for this condition.", variant: "destructive" });
       } else {
-        toast({ title: "Error", description: err.message, variant: "destructive" });
+        console.error("[Community] wave error:", err);
+        toast({ title: "Could not send wave", description: "Please try again.", variant: "destructive" });
       }
     },
   });
 
   const hasWaved = (toUserId: string) => myWaves?.some((w) => w.to_user_id === toUserId);
+  const canChat = (toUserId: string) => {
+    // Can chat if mutual wave exists
+    const sentWave = myWaves?.some((w) => w.to_user_id === toUserId);
+    const receivedWave = receivedWaves?.some((w: any) => w.from_user_id === toUserId);
+    return sentWave || receivedWave;
+  };
 
   if (loading) return null;
 
@@ -111,8 +116,13 @@ const Community = () => {
               <Users className="mx-auto mb-3 h-10 w-10 text-primary" />
               <h1 className="mb-2 font-heading text-3xl text-foreground">Community</h1>
               <p className="text-sm text-muted-foreground">
-                Connect with others who share your condition. Wave to say hi! 👋
+                Connect with others who share your condition. Wave to say hi, then chat! 👋
               </p>
+            </div>
+
+            {/* Disclaimer */}
+            <div className="mb-6 rounded-lg border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
+              <strong>Note:</strong> CrowdDx is not a healthcare provider. Connections here are peer-to-peer and do not constitute medical advice. Never share personal medical decisions based solely on community interactions.
             </div>
 
             {/* Received waves notification */}
@@ -162,18 +172,29 @@ const Community = () => {
                     {p.bio && (
                       <p className="mb-4 text-sm text-muted-foreground line-clamp-2">{p.bio}</p>
                     )}
-                    <Button
-                      size="sm"
-                      variant={hasWaved(p.user_id) ? "outline" : "default"}
-                      disabled={hasWaved(p.user_id) || waveMutation.isPending}
-                      onClick={() => waveMutation.mutate({
-                        toUserId: p.user_id,
-                        conditionId: conditionFilter !== "all" ? conditionFilter : conditions?.[0]?.id || "",
-                      })}
-                    >
-                      <Hand className="mr-1.5 h-4 w-4" />
-                      {hasWaved(p.user_id) ? "Waved 👋" : "Wave"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant={hasWaved(p.user_id) ? "outline" : "default"}
+                        disabled={hasWaved(p.user_id) || waveMutation.isPending}
+                        onClick={() => waveMutation.mutate({
+                          toUserId: p.user_id,
+                          conditionId: conditionFilter !== "all" ? conditionFilter : conditions?.[0]?.id || "",
+                        })}
+                      >
+                        <Hand className="mr-1.5 h-4 w-4" />
+                        {hasWaved(p.user_id) ? "Waved 👋" : "Wave"}
+                      </Button>
+                      {canChat(p.user_id) && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => setChatWith({ userId: p.user_id, name: p.display_name || "User" })}
+                        >
+                          <MessageCircle className="mr-1.5 h-4 w-4" /> Chat
+                        </Button>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -192,6 +213,16 @@ const Community = () => {
           </div>
         </div>
       </section>
+
+      {/* Chat widget */}
+      {chatWith && (
+        <SimpleChat
+          otherUserId={chatWith.userId}
+          otherDisplayName={chatWith.name}
+          onClose={() => setChatWith(null)}
+        />
+      )}
+
       <Footer />
     </div>
   );

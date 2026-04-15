@@ -23,6 +23,7 @@ const Profile = () => {
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
   const [sharingMode, setSharingMode] = useState("anonymous");
+  const [contactConsent, setContactConsent] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
 
   useEffect(() => {
@@ -57,17 +58,19 @@ const Profile = () => {
       setDisplayName(profile.display_name || "");
       setBio(profile.bio || "");
       setSharingMode(profile.sharing_mode);
+      setContactConsent(!!(profile as any).contact_consent);
       setAgreedTerms(true);
     }
   }, [profile]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const payload = {
+      const payload: any = {
         user_id: user!.id,
         display_name: sharingMode === "named" ? displayName : null,
         bio: sharingMode === "named" ? bio : null,
         sharing_mode: sharingMode,
+        contact_consent: contactConsent,
       };
 
       if (profile) {
@@ -186,8 +189,26 @@ const Profile = () => {
                     </>
                   )}
 
+                  {/* Researcher contact consent */}
+                  <div className="rounded-lg border border-border bg-secondary/30 p-4">
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        id="contact-consent"
+                        checked={contactConsent}
+                        onCheckedChange={(v) => setContactConsent(v === true)}
+                      />
+                      <div>
+                        <label htmlFor="contact-consent" className="text-sm font-medium text-foreground cursor-pointer">
+                          Allow researchers to contact me
+                        </label>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          If enabled, verified researchers can message you through CrowdDx to ask follow-up questions about your experience. Your email is never shared — all communication happens through the platform.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button
-                    className="w-full"
                     onClick={() => saveMutation.mutate()}
                     disabled={saveMutation.isPending || (sharingMode === "named" && !displayName)}
                   >
