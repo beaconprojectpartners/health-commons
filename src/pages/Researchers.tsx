@@ -3,7 +3,8 @@ import Footer from "@/components/Footer";
 import DatasetSearch from "@/components/DatasetSearch";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield } from "lucide-react";
+import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 
 const features = [
   { icon: Filter, title: "Advanced Filters", desc: "Filter by condition, symptom, treatment, lab result, region, and more." },
@@ -28,6 +29,29 @@ const schemaFields = [
   { field: "submitted_at", type: "timestamp", desc: "UTC timestamp of submission" },
 ];
 
+const SignInGate = ({ children, label }: { children: React.ReactNode; label: string }) => {
+  const { user, loading } = useAuth();
+
+  if (loading) return null;
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 text-center shadow-card">
+        <Lock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <h3 className="mb-2 font-heading text-lg text-foreground">Sign in required</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Create a free account to access {label}.
+        </p>
+        <Link to="/auth?role=researcher">
+          <Button>Sign In or Register</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
 const Researchers = () => (
   <div className="min-h-screen">
     <Navbar />
@@ -48,7 +72,7 @@ const Researchers = () => (
       </div>
     </section>
 
-    {/* Disclaimers */}
+    {/* Disclaimers — always visible */}
     <section className="border-y border-border bg-destructive/5 py-8">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
@@ -70,7 +94,7 @@ const Researchers = () => (
       </div>
     </section>
 
-    {/* Features */}
+    {/* Features — always visible */}
     <section className="py-16">
       <div className="container mx-auto px-4">
         <div className="mx-auto grid max-w-4xl gap-6 md:grid-cols-2">
@@ -85,7 +109,7 @@ const Researchers = () => (
       </div>
     </section>
 
-    {/* AI Dataset Discovery */}
+    {/* AI Dataset Discovery — gated */}
     <section className="border-t border-border py-16 bg-secondary/30">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
@@ -95,12 +119,14 @@ const Researchers = () => (
               Use our AI assistant to explore what data is available and plan your queries.
             </p>
           </div>
-          <DatasetSearch />
+          <SignInGate label="the AI dataset discovery tool">
+            <DatasetSearch />
+          </SignInGate>
         </div>
       </div>
     </section>
 
-    {/* Data Schema */}
+    {/* Data Schema — gated */}
     <section className="border-t border-border py-16">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl">
@@ -108,34 +134,36 @@ const Researchers = () => (
             <FileJson className="h-6 w-6 text-primary" />
             <h2 className="font-heading text-2xl text-foreground">Data Schema</h2>
           </div>
-          <p className="mb-6 text-sm text-muted-foreground">
-            Each submission stores structured data in the following schema. The <code className="rounded bg-secondary px-1 py-0.5 text-xs">universal_fields</code> JSONB column contains the core patient-reported data.
-          </p>
-          <div className="overflow-x-auto rounded-xl border border-border">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-secondary/50">
-                  <th className="px-4 py-3 text-left font-medium text-foreground">Field</th>
-                  <th className="px-4 py-3 text-left font-medium text-foreground">Type</th>
-                  <th className="px-4 py-3 text-left font-medium text-foreground">Description</th>
-                </tr>
-              </thead>
-              <tbody>
-                {schemaFields.map(({ field, type, desc }, i) => (
-                  <tr key={field} className={i % 2 === 0 ? "bg-card" : "bg-secondary/20"}>
-                    <td className="px-4 py-2.5 font-mono text-xs text-primary">{field}</td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">{type}</td>
-                    <td className="px-4 py-2.5 text-muted-foreground">{desc}</td>
+          <SignInGate label="the full data schema">
+            <p className="mb-6 text-sm text-muted-foreground">
+              Each submission stores structured data in the following schema. The <code className="rounded bg-secondary px-1 py-0.5 text-xs">universal_fields</code> JSONB column contains the core patient-reported data.
+            </p>
+            <div className="overflow-x-auto rounded-xl border border-border">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-border bg-secondary/50">
+                    <th className="px-4 py-3 text-left font-medium text-foreground">Field</th>
+                    <th className="px-4 py-3 text-left font-medium text-foreground">Type</th>
+                    <th className="px-4 py-3 text-left font-medium text-foreground">Description</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {schemaFields.map(({ field, type, desc }, i) => (
+                    <tr key={field} className={i % 2 === 0 ? "bg-card" : "bg-secondary/20"}>
+                      <td className="px-4 py-2.5 font-mono text-xs text-primary">{field}</td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">{type}</td>
+                      <td className="px-4 py-2.5 text-muted-foreground">{desc}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </SignInGate>
         </div>
       </div>
     </section>
 
-    {/* Data Use Terms */}
+    {/* Data Use Terms — always visible */}
     <section className="border-t border-border py-12">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-2xl rounded-xl border border-border bg-secondary/30 p-6">
