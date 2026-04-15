@@ -38,7 +38,7 @@ const HeroSection = () => (
         {[
           { icon: Users, label: "Conditions Tracked", value: "15+" },
           { icon: Database, label: "Open Dataset", value: "Free" },
-          { icon: Shield, label: "Privacy", value: "Anonymous" },
+          { icon: Shield, label: "Privacy", value: "Confidential" },
         ].map(({ icon: Icon, label, value }) => (
           <div key={label} className="text-center">
             <Icon className="mx-auto mb-2 h-5 w-5 text-primary" />
