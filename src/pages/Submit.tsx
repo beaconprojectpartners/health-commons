@@ -254,9 +254,9 @@ const Submit = () => {
 
   if (submitted) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <section className="flex min-h-[60vh] items-center justify-center py-16">
+        <section className="flex flex-1 items-center justify-center py-16">
           <div className="mx-auto max-w-md text-center">
             <CheckCircle className="mx-auto mb-6 h-16 w-16 text-primary" />
             <h1 className="mb-3 font-heading text-3xl text-foreground">Thank You</h1>
@@ -295,9 +295,9 @@ const Submit = () => {
   // Auth gate
   if (!authLoading && !user) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <section className="flex min-h-[60vh] items-center justify-center py-16">
+        <section className="flex flex-1 items-center justify-center py-16">
           <div className="mx-auto max-w-md text-center">
             <h1 className="mb-3 font-heading text-3xl text-foreground">Sign In Required</h1>
             <p className="mb-6 text-muted-foreground">
@@ -314,9 +314,9 @@ const Submit = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      <section className="py-12">
+      <section className="flex-1 py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
