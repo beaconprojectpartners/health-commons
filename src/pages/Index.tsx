@@ -10,9 +10,10 @@ const Index = () => (
     <Navbar />
     <main className="flex-1">
       <HeroSection />
-    <HowItWorks />
-    <ConditionList />
-    <PrivacyBanner />
+      <HowItWorks />
+      <ConditionList />
+      <PrivacyBanner />
+    </main>
     <Footer />
   </div>
 );
