@@ -13,6 +13,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { MedicalTermPicker, type PickedTerm } from "@/components/medical/MedicalTermPicker";
+import { PhiPreviewModal } from "@/components/medical/PhiPreviewModal";
 
 const STEPS = ["Condition", "Symptoms", "Treatment", "Demographics", "Quality of Life", "Review"];
 
@@ -36,10 +38,22 @@ const Submit = () => {
   const [misdiagnoses, setMisdiagnoses] = useState("");
 
   // Symptoms
-  const [symptoms, setSymptoms] = useState([{ name: "", severity: "5", frequency: "", bodySystem: "" }]);
+  const [symptoms, setSymptoms] = useState<Array<{ name: string; severity: string; frequency: string; bodySystem: string; picked: PickedTerm }>>([
+    { name: "", severity: "5", frequency: "", bodySystem: "", picked: { raw_text: "", status: "unresolved" } },
+  ]);
 
   // Treatment
-  const [treatments, setTreatments] = useState([{ name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }]);
+  const [treatments, setTreatments] = useState<Array<{ name: string; type: string; effectiveness: string; stillUsing: string; sideEffects: string; picked: PickedTerm }>>([
+    { name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "", picked: { raw_text: "", status: "unresolved" } },
+  ]);
+
+  // PHI preview modal state
+  const [phiPreview, setPhiPreview] = useState<{
+    open: boolean;
+    text: string;
+    kind: "symptom" | "treatment";
+    onConfirm: ((r: { stored: boolean; redacted_text: string; matched?: { source: "code" | "alias"; code_id: string; alias_id?: string; display: string; code: string; code_system: string; score: number } }) => void) | null;
+  }>({ open: false, text: "", kind: "symptom", onConfirm: null });
 
   // Demographics
   const [ageRange, setAgeRange] = useState("");
@@ -129,13 +143,26 @@ const Submit = () => {
     setMisdiagnoses(u.misdiagnoses || "");
     setSymptoms(
       Array.isArray(u.symptoms) && u.symptoms.length > 0
-        ? u.symptoms.map((s: any) => ({ name: s.name || "", severity: s.severity || "5", frequency: s.frequency || "", bodySystem: s.bodySystem || "" }))
-        : [{ name: "", severity: "5", frequency: "", bodySystem: "" }],
+        ? u.symptoms.map((s: any) => ({
+            name: s.name || "",
+            severity: s.severity || "5",
+            frequency: s.frequency || "",
+            bodySystem: s.bodySystem || "",
+            picked: { raw_text: s.name || "", code_id: s.code_id ?? null, status: (s.code_id ? "matched" : s.pending_code_entry_id ? "pending" : "unresolved") } as PickedTerm,
+          }))
+        : [{ name: "", severity: "5", frequency: "", bodySystem: "", picked: { raw_text: "", status: "unresolved" } }],
     );
     setTreatments(
       Array.isArray(u.treatments) && u.treatments.length > 0
-        ? u.treatments.map((t: any) => ({ name: t.name || "", type: t.type || "", effectiveness: t.effectiveness || "5", stillUsing: t.stillUsing || "", sideEffects: t.sideEffects || "" }))
-        : [{ name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }],
+        ? u.treatments.map((t: any) => ({
+            name: t.name || "",
+            type: t.type || "",
+            effectiveness: t.effectiveness || "5",
+            stillUsing: t.stillUsing || "",
+            sideEffects: t.sideEffects || "",
+            picked: { raw_text: t.name || "", code_id: t.code_id ?? null, status: (t.code_id ? "matched" : t.pending_code_entry_id ? "pending" : "unresolved") } as PickedTerm,
+          }))
+        : [{ name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "", picked: { raw_text: "", status: "unresolved" } }],
     );
     const d = u.demographics || {};
     setAgeRange(d.age_range || "");
@@ -186,8 +213,8 @@ const Submit = () => {
     }
   };
 
-  const addSymptom = () => setSymptoms([...symptoms, { name: "", severity: "5", frequency: "", bodySystem: "" }]);
-  const addTreatment = () => setTreatments([...treatments, { name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }]);
+  const addSymptom = () => setSymptoms([...symptoms, { name: "", severity: "5", frequency: "", bodySystem: "", picked: { raw_text: "", status: "unresolved" } }]);
+  const addTreatment = () => setTreatments([...treatments, { name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "", picked: { raw_text: "", status: "unresolved" } }]);
 
   const updateSymptom = (i: number, field: string, value: string) => {
     const updated = [...symptoms];
@@ -199,6 +226,21 @@ const Submit = () => {
     const updated = [...treatments];
     (updated[i] as any)[field] = value;
     setTreatments(updated);
+  };
+
+  const updateSymptomPicked = (i: number, picked: PickedTerm) => {
+    const updated = [...symptoms];
+    updated[i] = { ...updated[i], picked, name: picked.raw_text };
+    setSymptoms(updated);
+  };
+  const updateTreatmentPicked = (i: number, picked: PickedTerm) => {
+    const updated = [...treatments];
+    updated[i] = { ...updated[i], picked, name: picked.raw_text };
+    setTreatments(updated);
+  };
+
+  const requestPhiPreview = (kind: "symptom" | "treatment") => (text: string, onConfirm: (r: { stored: boolean; redacted_text: string; matched?: { source: "code" | "alias"; code_id: string; alias_id?: string; display: string; code: string; code_system: string; score: number } }) => void) => {
+    setPhiPreview({ open: true, text, kind, onConfirm });
   };
 
   const handleSubmit = async () => {
