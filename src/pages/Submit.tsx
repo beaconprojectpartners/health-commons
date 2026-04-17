@@ -181,7 +181,27 @@ const Submit = () => {
               Your submission has been recorded. Your data will help researchers better understand{" "}
               {selectedCondition?.name || "this condition"}.
             </p>
-            <Button onClick={() => { setSubmitted(false); setStep(0); }}>Submit Another</Button>
+
+            {selectedCondition && !submittedConditionInProfile && !addedToProfile && (
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-left">
+                <p className="mb-3 text-sm text-foreground">
+                  Add <strong>{selectedCondition.name}</strong> to your profile so peers with the same condition can find you?
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddConditionToProfile} disabled={addingToProfile}>
+                    {addingToProfile ? "Adding..." : "Add to profile"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setAddedToProfile(true)}>
+                    Not now
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-2">
+              <Button onClick={() => { setSubmitted(false); setStep(0); setAddedToProfile(false); }}>Submit Another</Button>
+              <Link to="/profile"><Button variant="outline">View profile</Button></Link>
+            </div>
           </div>
         </section>
         <Footer />
