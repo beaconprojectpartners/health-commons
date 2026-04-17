@@ -19,8 +19,8 @@ const pathways = [
   {
     role: "Specialist",
     icon: FlaskConical,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
+    color: "text-fuchsia-500",
+    bg: "bg-fuchsia-500/10",
     steps: [
       "Sign in and request specialist access",
       "Select a condition to define",
@@ -59,7 +59,7 @@ const HowItWorks = () => (
             <ol className="mb-6 space-y-3">
               {steps.map((step, i) => (
                 <li key={i} className="flex items-start gap-3 text-sm text-muted-foreground">
-                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${color === "text-primary" ? "bg-primary" : color === "text-emerald-500" ? "bg-emerald-500" : "bg-blue-500"}`}>
+                  <span className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-xs font-semibold text-white ${color === "text-primary" ? "bg-primary" : color === "text-fuchsia-500" ? "bg-fuchsia-500" : "bg-blue-500"}`}>
                     {i + 1}
                   </span>
                   {step}
