@@ -25,8 +25,8 @@
  * COST GUIDANCE: AWS Comprehend Medical DetectPHI is ~$0.0014 / 100 chars.
  * When monthly spend exceeds ~$300/mo (~21M chars/mo), evaluate Presidio.
  */
-import { corsHeaders } from "@supabase/supabase-js/cors";
-import { createClient } from "@supabase/supabase-js";
+import { corsHeaders } from "npm:@supabase/supabase-js/cors";
+import { createClient } from "npm:@supabase/supabase-js";
 import { AwsComprehendMedicalDetector } from "./providers/aws_comprehend_medical.ts";
 import type { PhiDetector, PhiSpan } from "./providers/types.ts";
 
