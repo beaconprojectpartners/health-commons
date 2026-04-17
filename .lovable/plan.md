@@ -1,75 +1,52 @@
 
 
-## Community page rebuild — full plan
+## Connect Profile ↔ Submit data
 
-### Why your named profile didn't appear
+Right now Profile and Submit are completely disconnected. A user picks conditions on their profile, but Submit doesn't know about them; conversely, submitting data doesn't update profile completeness. Let's tie them together in two directions.
 
-1. Community page hides your own profile by design (you only see *others*).
-2. Profile creation never collects `condition_ids`, so the RLS policy `Named profiles visible to peers` (which requires a shared condition) returns nothing.
-3. The condition filter also finds nothing because no profile has conditions tagged.
+### Direction 1: Profile → Submit (prefill + nudge)
 
-Fix the data first, then rebuild the page around it.
+When a user with profile-listed conditions hits **Submit**:
 
-### 1. Profile: collect conditions (prerequisite)
+- **Prefill the condition picker.** If `patient_profiles.condition_ids` has entries, the Step 0 condition dropdown defaults to the first one (or shows a "Your conditions" group at the top of the list).
+- **Quick-pick chips.** Above the condition select, render small chips for each condition the user follows: "Submit data for: [Lupus] [Fibromyalgia]". Clicking one sets `conditionId` instantly.
+- **"Add a condition" inline link.** If the user has *no* conditions on their profile, show a soft note: "Tip: Add your conditions on your profile to skip this step next time." → links to `/profile`.
 
-Update `src/pages/Profile.tsx`:
-- Add a multi-select **My conditions** (reads `conditions`, writes `patient_profiles.condition_ids`).
-- Available for all sharing modes.
-- Helper text: "Selecting conditions lets you see and connect with peers who share them."
+### Direction 2: Submit → Profile (completeness tracking)
 
-### 2. Community page structure
+The Profile page should reflect, per-condition, how complete the user's data contribution is.
 
-New layout for `src/pages/Community.tsx`, top to bottom:
+**New section on Profile: "Your contributions"**
 
-**a. Header + medical disclaimer** (keep existing).
+A list/table of the user's conditions (from `condition_ids`), each with a completeness status pulled by querying `submissions` where `submitter_account_id = user.id` grouped by `condition_id`:
 
-**b. Anonymity guard** — if `sharing_mode != 'named'`, soft prompt: "You're browsing anonymously. Switch to a Named profile so peers can wave back." → links to `/profile`.
+| Condition | Status | Action |
+|---|---|---|
+| Lupus | ✓ Complete (5/5 sections) | Edit |
+| Fibromyalgia | ⚠ Incomplete (2/5 sections) | Continue |
+| Crohn's | ✗ Not started | Start submission |
 
-**c. Snapshot stat row**
-- Conditions you follow
-- Peers visible to you
-- Pending waves received
-- Active conversations
+**Completeness rule** (computed client-side from the submission's `universal_fields`):
+- Section "filled" if it has any non-empty value
+- 5 sections tracked: Condition details, Symptoms, Treatments, Demographics, Quality of life
+- Status: `Not started` (no submission), `Incomplete` (1–4 sections), `Complete` (5/5)
 
-**d. Filter bar** — defaults to "Conditions I follow" (with "All" option).
+**Profile header badge.** Small pill near the top: "Profile completeness: 60%" — combines profile fields (sharing mode set, conditions selected, bio if named) + at least one submission per listed condition.
 
-**e. People with your conditions** (primary section — table + accordion)
+### Direction 3: Auto-suggest profile updates from Submit
 
-Table columns:
+After a successful submission for a condition not yet in the user's profile `condition_ids`, show a one-time prompt on the Thank You screen:
 
-| Column | Content |
-|---|---|
-| Name | Avatar initial + display name |
-| Shared conditions | Badges for overlap |
-| Bio (short) | Truncated first line |
-| Actions | Wave / Chat |
+> "Add **Lupus** to your profile so peers with the same condition can find you?"
+> [Add to profile] [Not now]
 
-Each row is an `AccordionItem` (header row = trigger, expanded row spans all columns) revealing:
-- Full bio
-- All listed conditions
-- Aggregated symptoms/treatments from their public submissions (`submissions` where `submitter_account_id = peer.user_id` and `sharing_preference in ('anonymized_public','named_public')`)
-- Inline Wave + Chat
-
-Empty states:
-- No conditions on profile → CTA to `/profile`.
-- Conditions set, no peers → "No named peers yet for [Condition]."
-
-Mobile (≤768px): collapse table to stacked accordion cards (table doesn't fit at 990px and below).
-
-**f. Waves inbox** — list received waves (who, which condition, "Wave back" / "Open chat"). Mark `waves.seen_at` when viewed.
-
-**g. Conversations** — counterparties from `messages`, unread counts, last preview, click opens `SimpleChat`.
-
-**h. Community pulse** (public-friendly)
-- Top conditions by `submission_count`
-- Recently active conditions → link to `/conditions/:slug`
+Clicking adds the `condition_id` to `patient_profiles.condition_ids` (with upsert if no profile exists yet — defaulting to anonymous mode).
 
 ### Files to change
 
-- `src/pages/Profile.tsx` — add conditions multi-select.
-- `src/pages/Community.tsx` — full restructure with table + accordion peer list, waves inbox, conversations, pulse.
-- No DB schema or RLS changes needed.
+- `src/pages/Submit.tsx` — read user's `patient_profiles.condition_ids`, prefill + chips, post-submit prompt to add condition to profile.
+- `src/pages/Profile.tsx` — add "Your contributions" section with per-condition completeness, plus a header completeness pill.
+- New small helper (inline or `src/lib/completeness.ts`) — pure function that takes a submission row and returns `{ filledSections, totalSections, status }`.
 
-### Components used
-Existing `Table`, `Accordion`, `Badge`, `Select`, `Button` from `src/components/ui/`.
+No DB schema or RLS changes needed — `submissions` is already readable by the submitter and `patient_profiles` already has `condition_ids`.
 
