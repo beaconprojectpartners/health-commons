@@ -58,6 +58,49 @@ const Profile = () => {
     },
   });
 
+  const { data: mySubmissions } = useQuery({
+    queryKey: ["my-submissions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("id, condition_id, universal_fields, submitted_at")
+        .eq("submitter_account_id", user!.id)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Latest submission per condition
+  const submissionByCondition = new Map<string, any>();
+  (mySubmissions || []).forEach((s) => {
+    if (!submissionByCondition.has(s.condition_id)) submissionByCondition.set(s.condition_id, s);
+  });
+
+  // Profile-level completeness pill
+  const profileFieldsScore = (() => {
+    let score = 0;
+    const total = 3; // sharing mode, conditions, (bio if named)
+    if (sharingMode) score += 1;
+    if (conditionIds.length > 0) score += 1;
+    if (sharingMode === "named" ? !!displayName : true) score += 1;
+    return { score, total };
+  })();
+
+  const submissionScore = (() => {
+    if (conditionIds.length === 0) return { score: 0, total: 0 };
+    let score = 0;
+    conditionIds.forEach((cid) => {
+      if (submissionByCondition.has(cid)) score += 1;
+    });
+    return { score, total: conditionIds.length };
+  })();
+
+  const totalScore = profileFieldsScore.score + submissionScore.score;
+  const totalMax = profileFieldsScore.total + submissionScore.total;
+  const completenessPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
+
   useEffect(() => {
     if (profile) {
       setDisplayName(profile.display_name || "");
