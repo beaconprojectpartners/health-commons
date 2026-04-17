@@ -24,6 +24,8 @@ const Submit = () => {
   const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [existingSubmissionId, setExistingSubmissionId] = useState<string | null>(null);
+  const [hasLoadedExisting, setHasLoadedExisting] = useState(false);
 
   // Form state
   const [conditionId, setConditionId] = useState(searchParams.get("condition") || "");
@@ -85,6 +87,69 @@ const Submit = () => {
       setConditionId(myConditionIds[0]);
     }
   }, [myConditionIds.join(","), conditionId]);
+
+  // Load existing submission for this user + condition (so editing updates instead of creating new)
+  const { data: existingSubmission } = useQuery({
+    queryKey: ["existing-submission", user?.id, conditionId],
+    enabled: !!user && !!conditionId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("id, universal_fields, sharing_preference")
+        .eq("submitter_account_id", user!.id)
+        .eq("condition_id", conditionId)
+        .order("submitted_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Reset prefill state when the condition changes
+  useEffect(() => {
+    setHasLoadedExisting(false);
+    setExistingSubmissionId(null);
+  }, [conditionId]);
+
+  // Hydrate form state from existing submission once
+  useEffect(() => {
+    if (hasLoadedExisting || !conditionId) return;
+    if (existingSubmission === undefined) return; // still loading
+    if (existingSubmission === null) {
+      setHasLoadedExisting(true);
+      return;
+    }
+    const u: any = existingSubmission.universal_fields || {};
+    setExistingSubmissionId(existingSubmission.id);
+    setDiagnosisStatus(u.diagnosis_status || "");
+    setYearOfDiagnosis(u.year_of_diagnosis || "");
+    setTimeTodiagnosis(u.time_to_diagnosis || "");
+    setProvidersCount(u.providers_count || "");
+    setMisdiagnoses(u.misdiagnoses || "");
+    setSymptoms(
+      Array.isArray(u.symptoms) && u.symptoms.length > 0
+        ? u.symptoms.map((s: any) => ({ name: s.name || "", severity: s.severity || "5", frequency: s.frequency || "", bodySystem: s.bodySystem || "" }))
+        : [{ name: "", severity: "5", frequency: "", bodySystem: "" }],
+    );
+    setTreatments(
+      Array.isArray(u.treatments) && u.treatments.length > 0
+        ? u.treatments.map((t: any) => ({ name: t.name || "", type: t.type || "", effectiveness: t.effectiveness || "5", stillUsing: t.stillUsing || "", sideEffects: t.sideEffects || "" }))
+        : [{ name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }],
+    );
+    const d = u.demographics || {};
+    setAgeRange(d.age_range || "");
+    setBiologicalSex(d.biological_sex || "");
+    setCountry(d.country || "");
+    const q = u.quality_of_life || {};
+    setWorkImpact(q.work_impact || "");
+    setPainAvg(q.pain_avg || "5");
+    setFatigueAvg(q.fatigue_avg || "5");
+    setMentalHealthImpact(q.mental_health_impact || "5");
+    setSubmitterType(u.submitter_type || "patient");
+    if (existingSubmission.sharing_preference) setSharingPref(existingSubmission.sharing_preference);
+    setHasLoadedExisting(true);
+  }, [existingSubmission, hasLoadedExisting, conditionId]);
 
   const progress = ((step + 1) / STEPS.length) * 100;
   const selectedCondition = conditions?.find((c) => c.id === conditionId);
@@ -155,19 +220,34 @@ const Submit = () => {
       submitter_type: submitterType,
     };
 
-    const { error } = await supabase.from("submissions").insert({
-      condition_id: conditionId,
-      universal_fields: universalFields,
-      sharing_preference: sharingPref,
-      submitter_account_id: user?.id || null,
-    });
+    let error: any = null;
+    if (existingSubmissionId) {
+      const res = await supabase
+        .from("submissions")
+        .update({
+          universal_fields: universalFields,
+          sharing_preference: sharingPref,
+        })
+        .eq("id", existingSubmissionId);
+      error = res.error;
+    } else {
+      const res = await supabase.from("submissions").insert({
+        condition_id: conditionId,
+        universal_fields: universalFields,
+        sharing_preference: sharingPref,
+        submitter_account_id: user?.id || null,
+      });
+      error = res.error;
+    }
 
     if (error) {
-      console.error("[Submit] insert error:", error);
+      console.error("[Submit] save error:", error);
       toast({ title: "Submission failed", description: "Please try again. Contact support if the issue persists.", variant: "destructive" });
     } else {
       queryClient.invalidateQueries({ queryKey: ["my-submissions"] });
       queryClient.invalidateQueries({ queryKey: ["my-profile-conditions"] });
+      queryClient.invalidateQueries({ queryKey: ["existing-submission"] });
+      toast({ title: existingSubmissionId ? "Submission updated" : "Submission saved" });
       setSubmitted(true);
     }
   };
@@ -240,9 +320,13 @@ const Submit = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
-              <h1 className="mb-2 font-heading text-3xl text-foreground">Share Your Experience</h1>
+              <h1 className="mb-2 font-heading text-3xl text-foreground">
+                {existingSubmissionId ? "Update Your Submission" : "Share Your Experience"}
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Only condition is required. Everything else is optional. Save your progress anytime.
+                {existingSubmissionId
+                  ? "We loaded your previous answers. Add or edit any section to improve completeness."
+                  : "Only condition is required. Everything else is optional. Save your progress anytime."}
               </p>
             </div>
 
@@ -554,7 +638,7 @@ const Submit = () => {
                     Next <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit}>Submit</Button>
+                  <Button onClick={handleSubmit}>{existingSubmissionId ? "Update" : "Submit"}</Button>
                 )}
               </div>
             </div>
