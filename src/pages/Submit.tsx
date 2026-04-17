@@ -719,6 +719,16 @@ const Submit = () => {
         </div>
       </section>
       <Footer />
+      <PhiPreviewModal
+        open={phiPreview.open}
+        text={phiPreview.text}
+        kind={phiPreview.kind}
+        onCancel={() => setPhiPreview({ open: false, text: "", kind: "symptom", onConfirm: null })}
+        onConfirmed={(r) => {
+          phiPreview.onConfirm?.(r);
+          setPhiPreview({ open: false, text: "", kind: "symptom", onConfirm: null });
+        }}
+      />
     </div>
   );
 };
