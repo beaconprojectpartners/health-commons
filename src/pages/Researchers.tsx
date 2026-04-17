@@ -123,10 +123,10 @@ const Researchers = () => (
             <div>
               <h2 className="mb-2 font-heading text-lg text-foreground">Important Disclaimers</h2>
               <ul className="space-y-1.5 text-sm text-muted-foreground">
-                <li>• <strong>CrowdDx is not a healthcare provider.</strong> We do not diagnose, treat, or provide medical advice of any kind.</li>
+                <li>• <strong>DxCommons is not a healthcare provider.</strong> We do not diagnose, treat, or provide medical advice of any kind.</li>
                 <li>• All data is <strong>patient-reported and self-selected</strong>. It is not a representative clinical sample and may contain inaccuracies, duplicates, or biased reporting.</li>
                 <li>• This data should be used <strong>at the researcher's discretion</strong> with appropriate statistical caveats and institutional review board (IRB) approval where applicable.</li>
-                <li>• CrowdDx makes <strong>no warranties</strong> about the accuracy, completeness, or fitness for purpose of any data provided.</li>
+                <li>• DxCommons makes <strong>no warranties</strong> about the accuracy, completeness, or fitness for purpose of any data provided.</li>
                 <li>• Researchers are solely responsible for the <strong>ethical use, interpretation, and publication</strong> of findings derived from this dataset.</li>
                 <li>• Data must <strong>not be used for re-identification</strong> of individuals or for commercial resale.</li>
               </ul>
@@ -234,7 +234,7 @@ const Researchers = () => (
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li>• Data is anonymized and must not be used for re-identification</li>
             <li>• Not for commercial resale</li>
-            <li>• Attribution to CrowdDx encouraged in publications</li>
+            <li>• Attribution to DxCommons encouraged in publications</li>
             <li>• Each export includes schema version, timestamps, and audit trail</li>
             <li>• Some patients have opted in to researcher contact — you may message them through the platform only</li>
           </ul>

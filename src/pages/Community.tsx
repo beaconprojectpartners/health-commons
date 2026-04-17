@@ -295,7 +295,7 @@ const Community = () => {
 
             {/* Disclaimer */}
             <div className="mb-6 rounded-lg border border-border bg-secondary/30 p-3 text-xs text-muted-foreground">
-              <strong>Note:</strong> CrowdDx is not a healthcare provider. Connections here are peer-to-peer and do not constitute medical advice. Never share personal medical decisions based solely on community interactions.
+              <strong>Note:</strong> DxCommons is not a healthcare provider. Connections here are peer-to-peer and do not constitute medical advice. Never share personal medical decisions based solely on community interactions.
             </div>
 
             {/* Anonymity guard */}

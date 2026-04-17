@@ -13,7 +13,7 @@ const HeroSection = () => (
           Open-source · Privacy-first · Patient-driven
         </div>
         <h1 className="mb-4 text-5xl font-extrabold tracking-tight text-foreground md:text-7xl lg:text-8xl" style={{ fontFamily: "'Righteous', cursive" }}>
-          CrowdDx
+          DxCommons
         </h1>
         <p className="mb-10 text-lg text-muted-foreground md:text-xl lg:text-2xl">
           One patient's story is anecdotal.{" "}
