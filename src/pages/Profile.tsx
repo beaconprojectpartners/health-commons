@@ -25,6 +25,7 @@ const Profile = () => {
   const [sharingMode, setSharingMode] = useState("anonymous");
   const [contactConsent, setContactConsent] = useState(false);
   const [agreedTerms, setAgreedTerms] = useState(false);
+  const [conditionIds, setConditionIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -59,6 +60,7 @@ const Profile = () => {
       setBio(profile.bio || "");
       setSharingMode(profile.sharing_mode);
       setContactConsent(!!(profile as any).contact_consent);
+      setConditionIds((profile as any).condition_ids || []);
       setAgreedTerms(true);
     }
   }, [profile]);
@@ -71,6 +73,7 @@ const Profile = () => {
         bio: sharingMode === "named" ? bio : null,
         sharing_mode: sharingMode,
         contact_consent: contactConsent,
+        condition_ids: conditionIds,
       };
 
       if (profile) {
@@ -188,6 +191,41 @@ const Profile = () => {
                       </div>
                     </>
                   )}
+
+                  {/* My conditions multi-select */}
+                  <div>
+                    <Label>My conditions</Label>
+                    <p className="mt-1 mb-2 text-xs text-muted-foreground">
+                      Selecting conditions lets you see and connect with peers who share them.
+                    </p>
+                    <div className="max-h-48 overflow-y-auto rounded-md border border-border bg-background p-3 space-y-2">
+                      {conditions && conditions.length > 0 ? (
+                        conditions.map((c: any) => (
+                          <div key={c.id} className="flex items-center gap-2">
+                            <Checkbox
+                              id={`cond-${c.id}`}
+                              checked={conditionIds.includes(c.id)}
+                              onCheckedChange={(v) => {
+                                setConditionIds((prev) =>
+                                  v === true ? [...prev, c.id] : prev.filter((id) => id !== c.id),
+                                );
+                              }}
+                            />
+                            <label htmlFor={`cond-${c.id}`} className="text-sm text-foreground cursor-pointer">
+                              {c.name}
+                            </label>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No conditions available yet.</p>
+                      )}
+                    </div>
+                    {conditionIds.length > 0 && (
+                      <p className="mt-2 text-xs text-muted-foreground">
+                        {conditionIds.length} selected
+                      </p>
+                    )}
+                  </div>
 
                   {/* Researcher contact consent */}
                   <div className="rounded-lg border border-border bg-secondary/30 p-4">
