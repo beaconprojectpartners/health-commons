@@ -42,11 +42,19 @@ const HeroSection = () => (
         {[
           { icon: Users, label: "Conditions Tracked", value: "15+" },
           { icon: Database, label: "Open Dataset", value: "Free" },
+      {/* Stats */}
+      <div className="mx-auto mt-16 flex max-w-3xl flex-wrap justify-center gap-3 sm:gap-4 md:mt-20">
+        {[
+          { icon: Users, label: "Conditions Tracked", value: "15+" },
+          { icon: Database, label: "Open Dataset", value: "Free" },
           { icon: Shield, label: "Privacy", value: "Confidential" },
         ].map(({ icon: Icon, label, value }) => (
-          <div key={label} className="text-center">
-            <Icon className="mx-auto mb-2 h-5 w-5 text-primary" />
-            <div className="font-heading text-2xl text-foreground">{value}</div>
+          <div
+            key={label}
+            className="flex min-w-[9rem] flex-1 basis-[9rem] flex-col items-center rounded-xl border border-border/50 bg-card/50 p-4 text-center sm:basis-[10rem]"
+          >
+            <Icon className="mb-2 h-5 w-5 text-primary" />
+            <div className="font-heading text-xl text-foreground sm:text-2xl">{value}</div>
             <div className="text-xs text-muted-foreground">{label}</div>
           </div>
         ))}
