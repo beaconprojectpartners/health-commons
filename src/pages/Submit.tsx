@@ -60,8 +60,65 @@ const Submit = () => {
     },
   });
 
+  // Pull the user's profile conditions for prefill + chips
+  const { data: myProfile } = useQuery({
+    queryKey: ["my-profile-conditions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patient_profiles")
+        .select("id, sharing_mode, condition_ids")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const myConditionIds: string[] = (myProfile?.condition_ids as string[] | null) || [];
+  const myConditions = conditions?.filter((c) => myConditionIds.includes(c.id)) || [];
+
+  // Prefill condition picker from profile (only if nothing already selected)
+  useEffect(() => {
+    if (!conditionId && myConditionIds.length > 0) {
+      setConditionId(myConditionIds[0]);
+    }
+  }, [myConditionIds.join(","), conditionId]);
+
   const progress = ((step + 1) / STEPS.length) * 100;
   const selectedCondition = conditions?.find((c) => c.id === conditionId);
+  const submittedConditionInProfile = selectedCondition && myConditionIds.includes(selectedCondition.id);
+  const [addingToProfile, setAddingToProfile] = useState(false);
+  const [addedToProfile, setAddedToProfile] = useState(false);
+
+  const handleAddConditionToProfile = async () => {
+    if (!user || !selectedCondition) return;
+    setAddingToProfile(true);
+    try {
+      if (myProfile) {
+        const newIds = Array.from(new Set([...(myProfile.condition_ids || []), selectedCondition.id]));
+        const { error } = await supabase
+          .from("patient_profiles")
+          .update({ condition_ids: newIds })
+          .eq("id", myProfile.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("patient_profiles").insert({
+          user_id: user.id,
+          sharing_mode: "anonymous",
+          condition_ids: [selectedCondition.id],
+        });
+        if (error) throw error;
+      }
+      setAddedToProfile(true);
+      toast({ title: "Added to your profile" });
+    } catch (e: any) {
+      console.error("[Submit] add condition to profile error:", e);
+      toast({ title: "Could not add to profile", variant: "destructive" });
+    } finally {
+      setAddingToProfile(false);
+    }
+  };
 
   const addSymptom = () => setSymptoms([...symptoms, { name: "", severity: "5", frequency: "", bodySystem: "" }]);
   const addTreatment = () => setTreatments([...treatments, { name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }]);
