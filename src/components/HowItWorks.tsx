@@ -19,8 +19,8 @@ const pathways = [
   {
     role: "Specialist",
     icon: FlaskConical,
-    color: "text-emerald-500",
-    bg: "bg-emerald-500/10",
+    color: "text-fuchsia-500",
+    bg: "bg-fuchsia-500/10",
     steps: [
       "Sign in and request specialist access",
       "Select a condition to define",
