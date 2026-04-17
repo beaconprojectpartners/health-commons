@@ -170,13 +170,22 @@ const Profile = () => {
       <Navbar />
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-lg">
+          <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
               <User className="mx-auto mb-3 h-10 w-10 text-primary" />
               <h1 className="mb-2 font-heading text-3xl text-foreground">Your Profile</h1>
               <p className="text-sm text-muted-foreground">
                 Control how your data is shared with the community
               </p>
+              {profile && (
+                <div className="mx-auto mt-4 max-w-xs">
+                  <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Profile completeness</span>
+                    <span className="font-medium text-foreground">{completenessPct}%</span>
+                  </div>
+                  <Progress value={completenessPct} className="h-2" />
+                </div>
+              )}
             </div>
 
             {/* Data Sharing T&Cs */}
