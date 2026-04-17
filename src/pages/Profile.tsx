@@ -331,6 +331,60 @@ const Profile = () => {
                 </div>
               </div>
             )}
+
+            {/* Your contributions */}
+            {profile && conditionIds.length > 0 && (
+              <div className="mt-8 rounded-xl border border-border bg-card p-6 shadow-card">
+                <h2 className="mb-1 font-heading text-xl text-foreground">Your contributions</h2>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Submission completeness for each of your conditions. Adding more sections strengthens the dataset.
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conditionIds.map((cid) => {
+                      const cond = conditions?.find((c: any) => c.id === cid);
+                      if (!cond) return null;
+                      const sub = submissionByCondition.get(cid);
+                      const c = getCompleteness(sub);
+                      const statusEl =
+                        c.status === "complete" ? (
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Complete ({c.filledSections}/{c.totalSections})
+                          </Badge>
+                        ) : c.status === "incomplete" ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <AlertCircle className="h-3 w-3" /> Incomplete ({c.filledSections}/{c.totalSections})
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <Circle className="h-3 w-3" /> Not started
+                          </Badge>
+                        );
+                      const actionLabel =
+                        c.status === "complete" ? "Edit" : c.status === "incomplete" ? "Continue" : "Start submission";
+                      return (
+                        <TableRow key={cid}>
+                          <TableCell className="font-medium">{cond.name}</TableCell>
+                          <TableCell>{statusEl}</TableCell>
+                          <TableCell className="text-right">
+                            <Link to={`/submit?condition=${cid}`}>
+                              <Button variant="outline" size="sm">{actionLabel}</Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
           </div>
         </div>
       </section>
