@@ -200,7 +200,7 @@ const Profile = () => {
                       <li>• You can choose to share a named profile so others with the same condition can connect with you.</li>
                       <li>• You can delete your profile and all associated data at any time.</li>
                       <li>• Data will not be sold or used for re-identification.</li>
-                      <li>• Attribution to CrowdDx is encouraged in publications.</li>
+                      <li>• Attribution to DxCommons is encouraged in publications.</li>
                     </ul>
                   </div>
                 </div>
@@ -296,7 +296,7 @@ const Profile = () => {
                           Allow researchers to contact me
                         </label>
                         <p className="mt-1 text-xs text-muted-foreground">
-                          If enabled, verified researchers can message you through CrowdDx to ask follow-up questions about your experience. Your email is never shared — all communication happens through the platform.
+                          If enabled, verified researchers can message you through DxCommons to ask follow-up questions about your experience. Your email is never shared — all communication happens through the platform.
                         </p>
                       </div>
                     </div>

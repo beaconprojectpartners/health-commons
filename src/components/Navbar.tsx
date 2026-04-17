@@ -13,7 +13,7 @@ const Navbar = () => {
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
           <Heart className="h-6 w-6 text-primary" />
-          <span className="font-heading text-xl text-foreground">CrowdDx</span>
+          <span className="font-heading text-xl text-foreground">DxCommons</span>
         </Link>
 
         {/* Desktop */}

@@ -52,7 +52,7 @@ serve(async (req) => {
 
     if (!hasSub) {
       return new Response(
-        JSON.stringify({ error: "Active subscription required. Visit CrowdDx to subscribe." }),
+        JSON.stringify({ error: "Active subscription required. Visit DxCommons to subscribe." }),
         { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

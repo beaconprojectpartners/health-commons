@@ -1,5 +1,5 @@
 /**
- * PII scrubbing utilities for CrowdDx submission data.
+ * PII scrubbing utilities for DxCommons submission data.
  * Strips emails, phone numbers, SSNs, names, and other identifiable info
  * from free-text fields before exposing data via API or download.
  */
