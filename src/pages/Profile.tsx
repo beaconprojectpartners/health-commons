@@ -1,7 +1,7 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/hooks/useAuth";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -12,7 +12,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Shield, Trash2, User } from "lucide-react";
+import { Shield, Trash2, User, CheckCircle2, AlertCircle, Circle } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { getCompleteness } from "@/lib/completeness";
 
 const Profile = () => {
   const { user, loading, signOut } = useAuth();
@@ -53,6 +57,49 @@ const Profile = () => {
       return data;
     },
   });
+
+  const { data: mySubmissions } = useQuery({
+    queryKey: ["my-submissions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("submissions")
+        .select("id, condition_id, universal_fields, submitted_at")
+        .eq("submitter_account_id", user!.id)
+        .order("submitted_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Latest submission per condition
+  const submissionByCondition = new Map<string, any>();
+  (mySubmissions || []).forEach((s) => {
+    if (!submissionByCondition.has(s.condition_id)) submissionByCondition.set(s.condition_id, s);
+  });
+
+  // Profile-level completeness pill
+  const profileFieldsScore = (() => {
+    let score = 0;
+    const total = 3; // sharing mode, conditions, (bio if named)
+    if (sharingMode) score += 1;
+    if (conditionIds.length > 0) score += 1;
+    if (sharingMode === "named" ? !!displayName : true) score += 1;
+    return { score, total };
+  })();
+
+  const submissionScore = (() => {
+    if (conditionIds.length === 0) return { score: 0, total: 0 };
+    let score = 0;
+    conditionIds.forEach((cid) => {
+      if (submissionByCondition.has(cid)) score += 1;
+    });
+    return { score, total: conditionIds.length };
+  })();
+
+  const totalScore = profileFieldsScore.score + submissionScore.score;
+  const totalMax = profileFieldsScore.total + submissionScore.total;
+  const completenessPct = totalMax > 0 ? Math.round((totalScore / totalMax) * 100) : 0;
 
   useEffect(() => {
     if (profile) {
@@ -123,13 +170,22 @@ const Profile = () => {
       <Navbar />
       <section className="py-12">
         <div className="container mx-auto px-4">
-          <div className="mx-auto max-w-lg">
+          <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
               <User className="mx-auto mb-3 h-10 w-10 text-primary" />
               <h1 className="mb-2 font-heading text-3xl text-foreground">Your Profile</h1>
               <p className="text-sm text-muted-foreground">
                 Control how your data is shared with the community
               </p>
+              {profile && (
+                <div className="mx-auto mt-4 max-w-xs">
+                  <div className="mb-1 flex items-center justify-between text-xs text-muted-foreground">
+                    <span>Profile completeness</span>
+                    <span className="font-medium text-foreground">{completenessPct}%</span>
+                  </div>
+                  <Progress value={completenessPct} className="h-2" />
+                </div>
+              )}
             </div>
 
             {/* Data Sharing T&Cs */}
@@ -273,6 +329,60 @@ const Profile = () => {
                     <Trash2 className="mr-2 h-4 w-4" /> Delete Profile
                   </Button>
                 </div>
+              </div>
+            )}
+
+            {/* Your contributions */}
+            {profile && conditionIds.length > 0 && (
+              <div className="mt-8 rounded-xl border border-border bg-card p-6 shadow-card">
+                <h2 className="mb-1 font-heading text-xl text-foreground">Your contributions</h2>
+                <p className="mb-4 text-xs text-muted-foreground">
+                  Submission completeness for each of your conditions. Adding more sections strengthens the dataset.
+                </p>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Condition</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {conditionIds.map((cid) => {
+                      const cond = conditions?.find((c: any) => c.id === cid);
+                      if (!cond) return null;
+                      const sub = submissionByCondition.get(cid);
+                      const c = getCompleteness(sub);
+                      const statusEl =
+                        c.status === "complete" ? (
+                          <Badge variant="default" className="gap-1">
+                            <CheckCircle2 className="h-3 w-3" /> Complete ({c.filledSections}/{c.totalSections})
+                          </Badge>
+                        ) : c.status === "incomplete" ? (
+                          <Badge variant="secondary" className="gap-1">
+                            <AlertCircle className="h-3 w-3" /> Incomplete ({c.filledSections}/{c.totalSections})
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="gap-1 text-muted-foreground">
+                            <Circle className="h-3 w-3" /> Not started
+                          </Badge>
+                        );
+                      const actionLabel =
+                        c.status === "complete" ? "Edit" : c.status === "incomplete" ? "Continue" : "Start submission";
+                      return (
+                        <TableRow key={cid}>
+                          <TableCell className="font-medium">{cond.name}</TableCell>
+                          <TableCell>{statusEl}</TableCell>
+                          <TableCell className="text-right">
+                            <Link to={`/submit?condition=${cid}`}>
+                              <Button variant="outline" size="sm">{actionLabel}</Button>
+                            </Link>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
               </div>
             )}
           </div>

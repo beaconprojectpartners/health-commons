@@ -2,7 +2,7 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useState, useEffect } from "react";
 import { useSearchParams, useNavigate, Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -20,6 +20,7 @@ const Submit = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -60,8 +61,65 @@ const Submit = () => {
     },
   });
 
+  // Pull the user's profile conditions for prefill + chips
+  const { data: myProfile } = useQuery({
+    queryKey: ["my-profile-conditions", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("patient_profiles")
+        .select("id, sharing_mode, condition_ids")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  const myConditionIds: string[] = (myProfile?.condition_ids as string[] | null) || [];
+  const myConditions = conditions?.filter((c) => myConditionIds.includes(c.id)) || [];
+
+  // Prefill condition picker from profile (only if nothing already selected)
+  useEffect(() => {
+    if (!conditionId && myConditionIds.length > 0) {
+      setConditionId(myConditionIds[0]);
+    }
+  }, [myConditionIds.join(","), conditionId]);
+
   const progress = ((step + 1) / STEPS.length) * 100;
   const selectedCondition = conditions?.find((c) => c.id === conditionId);
+  const submittedConditionInProfile = selectedCondition && myConditionIds.includes(selectedCondition.id);
+  const [addingToProfile, setAddingToProfile] = useState(false);
+  const [addedToProfile, setAddedToProfile] = useState(false);
+
+  const handleAddConditionToProfile = async () => {
+    if (!user || !selectedCondition) return;
+    setAddingToProfile(true);
+    try {
+      if (myProfile) {
+        const newIds = Array.from(new Set([...(myProfile.condition_ids || []), selectedCondition.id]));
+        const { error } = await supabase
+          .from("patient_profiles")
+          .update({ condition_ids: newIds })
+          .eq("id", myProfile.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("patient_profiles").insert({
+          user_id: user.id,
+          sharing_mode: "anonymous",
+          condition_ids: [selectedCondition.id],
+        });
+        if (error) throw error;
+      }
+      setAddedToProfile(true);
+      toast({ title: "Added to your profile" });
+    } catch (e: any) {
+      console.error("[Submit] add condition to profile error:", e);
+      toast({ title: "Could not add to profile", variant: "destructive" });
+    } finally {
+      setAddingToProfile(false);
+    }
+  };
 
   const addSymptom = () => setSymptoms([...symptoms, { name: "", severity: "5", frequency: "", bodySystem: "" }]);
   const addTreatment = () => setTreatments([...treatments, { name: "", type: "", effectiveness: "5", stillUsing: "", sideEffects: "" }]);
@@ -108,6 +166,8 @@ const Submit = () => {
       console.error("[Submit] insert error:", error);
       toast({ title: "Submission failed", description: "Please try again. Contact support if the issue persists.", variant: "destructive" });
     } else {
+      queryClient.invalidateQueries({ queryKey: ["my-submissions"] });
+      queryClient.invalidateQueries({ queryKey: ["my-profile-conditions"] });
       setSubmitted(true);
     }
   };
@@ -124,7 +184,27 @@ const Submit = () => {
               Your submission has been recorded. Your data will help researchers better understand{" "}
               {selectedCondition?.name || "this condition"}.
             </p>
-            <Button onClick={() => { setSubmitted(false); setStep(0); }}>Submit Another</Button>
+
+            {selectedCondition && !submittedConditionInProfile && !addedToProfile && (
+              <div className="mb-6 rounded-lg border border-primary/20 bg-primary/5 p-4 text-left">
+                <p className="mb-3 text-sm text-foreground">
+                  Add <strong>{selectedCondition.name}</strong> to your profile so peers with the same condition can find you?
+                </p>
+                <div className="flex gap-2">
+                  <Button size="sm" onClick={handleAddConditionToProfile} disabled={addingToProfile}>
+                    {addingToProfile ? "Adding..." : "Add to profile"}
+                  </Button>
+                  <Button size="sm" variant="outline" onClick={() => setAddedToProfile(true)}>
+                    Not now
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex justify-center gap-2">
+              <Button onClick={() => { setSubmitted(false); setStep(0); setAddedToProfile(false); }}>Submit Another</Button>
+              <Link to="/profile"><Button variant="outline">View profile</Button></Link>
+            </div>
           </div>
         </section>
         <Footer />
@@ -180,6 +260,35 @@ const Submit = () => {
               {step === 0 && (
                 <div className="space-y-4">
                   <h2 className="font-heading text-xl text-card-foreground">Your Condition</h2>
+
+                  {myConditions.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs text-muted-foreground">Submit data for one of your conditions:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {myConditions.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setConditionId(c.id)}
+                            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                              conditionId === c.id
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {user && myConditions.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Tip: <Link to="/profile" className="text-primary underline">Add your conditions on your profile</Link> to skip this step next time.
+                    </p>
+                  )}
+
                   <div>
                     <Label>Condition *</Label>
                     <Select value={conditionId} onValueChange={setConditionId}>
