@@ -172,6 +172,27 @@ All tables get RLS. All inserts/updates go through helper functions where useful
 
 ## Edge function in Phase 2a: `scrub-phi`
 
+### PHI detection: AWS Comprehend Medical (Stages 1–2), behind a swappable interface
+
+**Decision:** Stages 1+2 of PHI detection use **AWS Comprehend Medical's `DetectPHI`** operation — purpose-built for the 18 HIPAA identifiers, returns structured entity types that map cleanly to our redaction schema. Stage 3 LLM adjudication remains as designed.
+
+**Swap path:** All PHI-provider logic is hidden behind a TypeScript interface inside `scrub-phi`. A future migration to self-hosted Presidio (Fly.io / Cloud Run) is a backend swap, not a rewrite. Documented in code comments and in `supabase/functions/scrub-phi/README.md`.
+
+```ts
+// supabase/functions/scrub-phi/providers/types.ts
+export interface PhiDetector {
+  detectPhi(text: string): Promise<{
+    redacted_text: string;
+    spans: Array<{ type: string; start: number; end: number; score: number }>;
+    counts: Record<string, number>;
+    provider: string;        // e.g. 'aws_comprehend_medical'
+    model_version: string;   // provider-reported model version
+  }>;
+}
+```
+
+Implementations: `AwsComprehendMedicalDetector` (Phase 2a). Future: `PresidioSidecarDetector` (drop-in).
+
 ### Inputs
 ```ts
 {
@@ -183,25 +204,49 @@ All tables get RLS. All inserts/updates go through helper functions where useful
 ### Output
 ```ts
 {
-  redacted_text: string,                              // same length-as-replacement substitution; spans replaced with [REDACTED:<TYPE>]
+  redacted_text: string,                              // spans replaced with [REDACTED:<TYPE>]
   spans: Array<{ type: string, start: number, end: number, score: number }>, // start/end into ORIGINAL text (#11)
   counts: Record<string, number>,                     // by type
-  model_version: string                               // e.g. "presidio-2.2.x+gemini-2.5-flash-2026-04"
+  provider: string,                                   // 'aws_comprehend_medical'
+  model_version: string                               // Comprehend's ModelVersion from response, optionally suffixed with adjudication model
 }
 ```
 
 ### Pipeline
-1. **Regex** (Deno-side) — phone, email, SSN, MRN, dates, addresses, URLs.
-2. **Presidio NER** — HTTP call to Presidio sidecar service. Recognizers: `PERSON, LOCATION, DATE_TIME, PHONE_NUMBER, EMAIL_ADDRESS, US_SSN, MEDICAL_LICENSE, US_DRIVER_LICENSE, IP_ADDRESS, URL, AGE`, custom `MRN`. **If unreachable → 503, no fallback.**
-3. **Eponym allowlist** — `PERSON` spans matching `phi_eponym_allowlist` are removed.
-4. **LLM Stage 3** — only spans where Presidio score `< 0.55`; Lovable AI `google/gemini-2.5-flash` w/ tool-calling schema. Ambiguous → redact.
+1. **Regex** (Deno-side) — phone, email, SSN, MRN, dates, addresses, URLs (defense in depth; cheap pre-filter).
+2. **AWS Comprehend Medical `DetectPHI`** via the `PhiDetector` interface. Endpoint: `us-east-1` (primary) with `us-west-2` as documented failover region. Maps Comprehend entity types (`NAME, ADDRESS, AGE, DATE, EMAIL, ID, PHONE_OR_FAX, PROFESSION, URL`, etc.) to our internal types. Captures Comprehend's `ModelVersion` for the log.
+3. **Eponym allowlist** — Comprehend `NAME`/`ORGANIZATION`-equivalent spans whose text matches `phi_eponym_allowlist` (citext compare) are filtered out. Mitigates Comprehend flagging "Crohn", "Sjögren", etc. as names.
+4. **LLM Stage 3 adjudication** — only spans where Comprehend `score < 0.85`; Lovable AI `google/gemini-2.5-flash` w/ tool-calling schema and the eponym list as context. Ambiguous → redact (fail closed).
 5. Span merge + sort by `start`, build `redacted_text`.
 
+### Region & BAA
+- Endpoint: `us-east-1` (primary), `us-west-2` (failover). Both support Comprehend Medical.
+- DxCommons is **not currently a covered entity**, so no BAA is in place. Documented in `supabase/functions/scrub-phi/README.md` so a future operator knows to execute AWS's BAA before scaling beyond research-pilot status.
+
+### Credentials & IAM
+- Secrets: `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION` (default `us-east-1`).
+- IAM user must be scoped to **only** `comprehendmedical:DetectPHI` — no other actions, no broad-access keys, no root credentials. IAM policy example included in the function README.
+
+### Error handling
+- On Comprehend timeout or 5xx: **retry once** with exponential backoff (250ms then 1s). On second failure: submission **fails** (no fallback to storing raw text — preserves the existing rule).
+- Failure writes a `redaction_log` row with `provider='aws_comprehend_medical'`, `counts={}`, and `error_code` populated (e.g. `comprehend_timeout`, `comprehend_5xx`, `comprehend_throttled`).
+- If Comprehend is unreachable end-to-end, scrub-phi returns **503**. Never silently downgrades to "regex only."
+
 ### Logging policy
-- No `console.log` or `console.error` ever sees `text`.
+- No `console.log` / `console.error` ever sees `text`.
 - `text` is passed only to scrubbers; once `redacted_text` is built, the local `text` variable is reassigned to `''` before any subsequent `await`.
-- All errors carry only `{ counts, model_version, phase, presidio_status }`.
-- Supabase Edge Function default body logging: **verified disabled** (action item; documented in PR).
+- All errors carry only `{ counts, provider, model_version, phase, error_code }`.
+- Supabase Edge Function default body logging: **verified disabled** (documented in PR).
+
+### Cost & swap-trigger documentation
+- Comprehend Medical pricing (current): **$0.0014 per 100 characters** for DetectPHI. ~$1.40 per 100k characters.
+- Admin dashboard (Phase 2e) shows daily Comprehend call count, character volume, and estimated cost.
+- **Swap-evaluation threshold:** when monthly Comprehend spend exceeds **~$300/mo** (≈21M characters), evaluate migrating to self-hosted Presidio on Fly.io. Documented in the function README.
+
+### Schema addition for #2 (revised): `redaction_log`
+The table specified earlier in this plan gains two columns to support the provider abstraction:
+- `provider` text NOT NULL
+- `error_code` text NULL
 
 ### What does NOT ship in Phase 2a
 - `submit-pending-term` (Phase 2b)
@@ -209,27 +254,24 @@ All tables get RLS. All inserts/updates go through helper functions where useful
 - Any UI (`MedicalTermPicker`, `PhiPreviewModal`, queue, onboarding, admin dashboard)
 - Rate limiting infra (Phase 2b — `submission_rate_buckets`)
 - Match-flag table (Phase 2b — `match_reports`)
-- Presidio sidecar deployment instructions (Phase 2a delivers the function and a stub URL secret; sidecar deploy is part of the PR but separate from the migration)
+- Cost dashboard tile (Phase 2e — admin dashboard)
 
 ---
 
 ## Phase 2a deliverables checklist (so reviewer can verify)
 
-- [ ] Migration: tables 1–10 above + RLS + the `submitted_text` → `redacted_text` rename + column comments + the governance `required_tier` reserved column + `TODO(governance)` comment block on the medical_codes/code_aliases approve path.
+- [ ] Migration: tables 1–10 above + RLS + the `submitted_text` → `redacted_text` rename + column comments + the governance `required_tier` reserved column + `provider` and `error_code` columns on `redaction_log` + `TODO(governance)` comment block on the medical_codes/code_aliases approve path.
 - [ ] Seed: `phi_eponym_allowlist` with the full list (originals + ALS, myasthenia gravis, Stevens-Johnson, Peyronie, Dupuytren, Osler-Weber-Rendu, von Willebrand, Gilbert, Takayasu).
-- [ ] Edge function `scrub-phi` with the pipeline above, returning the documented response shape, span coords into ORIGINAL text.
+- [ ] Secrets requested: `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION`.
+- [ ] Edge function `scrub-phi` with the `PhiDetector` interface, the `AwsComprehendMedicalDetector` implementation, the documented pipeline, and `README.md` covering: provider swap path, IAM-policy template, region/BAA note, cost model + swap threshold.
 - [ ] PR description includes: Supabase logging audit findings, backup retention decision, error-tracker policy, span-coordinate spec, governance TODO removal trigger, shadow-review tech-debt note.
 
 ---
 
-## Open items requiring confirmation before I write the migration
+## Confirmations before writing the migration
 
-1. **Presidio sidecar hosting.** Lovable edge runtime is Deno-only; Presidio is Python. Three options:
-   - **(a)** Stand up a tiny Presidio HTTP service (e.g. on Fly.io, Render, or Cloud Run); add `PRESIDIO_URL` + `PRESIDIO_API_KEY` secrets. You operate it.
-   - **(b)** I write the function to call a managed PHI-detection API (AWS Comprehend Medical / Google DLP) instead — paid, but no infra.
-   - **(c)** Defer Stage 2 NER to Phase 2b, ship Phase 2a with regex + LLM-only and clearly mark the gap.
-   Which do you want?
+1. **Provider:** AWS Comprehend Medical `DetectPHI` for Stages 1–2, behind the swappable `PhiDetector` interface. ✅ (per this update)
+2. **Rename:** `pending_code_entries.submitted_text` → `redacted_text`. Table is empty — safe rename, no backfill.
+3. **Secrets:** I'll request `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION` as the next step. The user must create an IAM user scoped to `comprehendmedical:DetectPHI` only and paste the credentials in.
 
-2. **Confirm rename is acceptable** even though `pending_code_entries` is currently empty (it is — verified). I'll do `ALTER TABLE ... RENAME COLUMN submitted_text TO redacted_text` rather than drop+add to keep migration history clean.
-
-Reply with the answer to #1 (and any final tweaks) and I'll execute Phase 2a.
+Ready to execute Phase 2a — say the word and I'll request the AWS secrets, then write the migration and the `scrub-phi` function.
