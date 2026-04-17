@@ -49,6 +49,128 @@ export type Database = {
           },
         ]
       }
+      code_aliases: {
+        Row: {
+          approved_at: string | null
+          approved_by: string | null
+          created_at: string
+          created_by: string | null
+          embedding: string | null
+          id: string
+          label: string
+          locale: string
+          medical_code_id: string
+          status: Database["public"]["Enums"]["code_alias_status"]
+          updated_at: string
+        }
+        Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          label: string
+          locale?: string
+          medical_code_id: string
+          status?: Database["public"]["Enums"]["code_alias_status"]
+          updated_at?: string
+        }
+        Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          created_at?: string
+          created_by?: string | null
+          embedding?: string | null
+          id?: string
+          label?: string
+          locale?: string
+          medical_code_id?: string
+          status?: Database["public"]["Enums"]["code_alias_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_aliases_medical_code_id_fkey"
+            columns: ["medical_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_mappings: {
+        Row: {
+          created_at: string
+          from_code_id: string
+          id: string
+          relation: Database["public"]["Enums"]["code_mapping_relation"]
+          source: string | null
+          to_code_id: string
+        }
+        Insert: {
+          created_at?: string
+          from_code_id: string
+          id?: string
+          relation: Database["public"]["Enums"]["code_mapping_relation"]
+          source?: string | null
+          to_code_id: string
+        }
+        Update: {
+          created_at?: string
+          from_code_id?: string
+          id?: string
+          relation?: Database["public"]["Enums"]["code_mapping_relation"]
+          source?: string | null
+          to_code_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "code_mappings_from_code_id_fkey"
+            columns: ["from_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "code_mappings_to_code_id_fkey"
+            columns: ["to_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      code_systems: {
+        Row: {
+          created_at: string
+          current_version: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          url: string | null
+        }
+        Insert: {
+          created_at?: string
+          current_version: string
+          description?: string | null
+          id: string
+          name: string
+          updated_at?: string
+          url?: string | null
+        }
+        Update: {
+          created_at?: string
+          current_version?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          url?: string | null
+        }
+        Relationships: []
+      }
       conditions: {
         Row: {
           approved: boolean | null
@@ -179,6 +301,66 @@ export type Database = {
           },
         ]
       }
+      medical_codes: {
+        Row: {
+          code: string
+          code_system: string
+          code_system_version: string
+          created_at: string
+          display: string
+          embedding: string | null
+          id: string
+          kind: Database["public"]["Enums"]["medical_code_kind"]
+          metadata: Json
+          parent_code_id: string | null
+          retired_at: string | null
+          specialty_scope: string[]
+        }
+        Insert: {
+          code: string
+          code_system: string
+          code_system_version: string
+          created_at?: string
+          display: string
+          embedding?: string | null
+          id?: string
+          kind: Database["public"]["Enums"]["medical_code_kind"]
+          metadata?: Json
+          parent_code_id?: string | null
+          retired_at?: string | null
+          specialty_scope?: string[]
+        }
+        Update: {
+          code?: string
+          code_system?: string
+          code_system_version?: string
+          created_at?: string
+          display?: string
+          embedding?: string | null
+          id?: string
+          kind?: Database["public"]["Enums"]["medical_code_kind"]
+          metadata?: Json
+          parent_code_id?: string | null
+          retired_at?: string | null
+          specialty_scope?: string[]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medical_codes_code_system_fkey"
+            columns: ["code_system"]
+            isOneToOne: false
+            referencedRelation: "code_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medical_codes_parent_code_id_fkey"
+            columns: ["parent_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       messages: {
         Row: {
           content: string
@@ -253,6 +435,93 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_code_entries: {
+        Row: {
+          candidate_code_id: string | null
+          candidate_score: number | null
+          code_system_hint: string | null
+          created_at: string
+          id: string
+          resolved_alias_id: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          resolved_code_id: string | null
+          status: Database["public"]["Enums"]["pending_code_status"]
+          submission_id: string | null
+          submitted_text: string
+          submitter_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          candidate_code_id?: string | null
+          candidate_score?: number | null
+          code_system_hint?: string | null
+          created_at?: string
+          id?: string
+          resolved_alias_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_code_id?: string | null
+          status?: Database["public"]["Enums"]["pending_code_status"]
+          submission_id?: string | null
+          submitted_text: string
+          submitter_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          candidate_code_id?: string | null
+          candidate_score?: number | null
+          code_system_hint?: string | null
+          created_at?: string
+          id?: string
+          resolved_alias_id?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          resolved_code_id?: string | null
+          status?: Database["public"]["Enums"]["pending_code_status"]
+          submission_id?: string | null
+          submitted_text?: string
+          submitter_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_code_entries_candidate_code_id_fkey"
+            columns: ["candidate_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_code_entries_code_system_hint_fkey"
+            columns: ["code_system_hint"]
+            isOneToOne: false
+            referencedRelation: "code_systems"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_code_entries_resolved_alias_id_fkey"
+            columns: ["resolved_alias_id"]
+            isOneToOne: false
+            referencedRelation: "code_aliases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_code_entries_resolved_code_id_fkey"
+            columns: ["resolved_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pending_code_entries_submission_id_fkey"
+            columns: ["submission_id"]
+            isOneToOne: false
+            referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       researchers: {
         Row: {
           agreed_terms_at: string
@@ -291,6 +560,30 @@ export type Database = {
           orcid?: string | null
           research_focus?: string | null
           revoked_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      specialist_scopes: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          id: string
+          specialty: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          specialty: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          id?: string
+          specialty?: string
           user_id?: string
         }
         Relationships: []
@@ -470,6 +763,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      code_in_user_scope: {
+        Args: { _code_id: string; _user_id: string }
+        Returns: boolean
+      }
       get_my_condition_ids: { Args: { _user_id: string }; Returns: string[] }
       has_active_subscription: {
         Args: { check_env?: string; user_uuid: string }
@@ -482,9 +779,26 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_specialty: {
+        Args: { _specialty: string; _user_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "specialist" | "researcher"
+      code_alias_status: "approved" | "pending" | "rejected"
+      code_mapping_relation: "equivalent" | "broader" | "narrower" | "related"
+      medical_code_kind:
+        | "diagnosis"
+        | "symptom"
+        | "procedure"
+        | "medication"
+        | "finding"
+      pending_code_status:
+        | "pending"
+        | "mapped"
+        | "new_code_created"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -613,6 +927,21 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "specialist", "researcher"],
+      code_alias_status: ["approved", "pending", "rejected"],
+      code_mapping_relation: ["equivalent", "broader", "narrower", "related"],
+      medical_code_kind: [
+        "diagnosis",
+        "symptom",
+        "procedure",
+        "medication",
+        "finding",
+      ],
+      pending_code_status: [
+        "pending",
+        "mapped",
+        "new_code_created",
+        "rejected",
+      ],
     },
   },
 } as const
