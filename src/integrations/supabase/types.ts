@@ -328,6 +328,60 @@ export type Database = {
           },
         ]
       }
+      match_reports: {
+        Row: {
+          created_at: string
+          id: string
+          matched_alias_id: string | null
+          matched_code_id: string | null
+          reason: string | null
+          redacted_input: string
+          reporter_id: string
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          matched_alias_id?: string | null
+          matched_code_id?: string | null
+          reason?: string | null
+          redacted_input: string
+          reporter_id: string
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          matched_alias_id?: string | null
+          matched_code_id?: string | null
+          reason?: string | null
+          redacted_input?: string
+          reporter_id?: string
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "match_reports_matched_alias_id_fkey"
+            columns: ["matched_alias_id"]
+            isOneToOne: false
+            referencedRelation: "code_aliases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "match_reports_matched_code_id_fkey"
+            columns: ["matched_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medical_codes: {
         Row: {
           code: string
@@ -988,6 +1042,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      submission_rate_buckets: {
+        Row: {
+          bucket_key: string
+          bucket_kind: string
+          count: number
+          id: string
+          window_kind: string
+          window_start: string
+        }
+        Insert: {
+          bucket_key: string
+          bucket_kind: string
+          count?: number
+          id?: string
+          window_kind: string
+          window_start: string
+        }
+        Update: {
+          bucket_key?: string
+          bucket_kind?: string
+          count?: number
+          id?: string
+          window_kind?: string
+          window_start?: string
+        }
+        Relationships: []
       }
       submissions: {
         Row: {
