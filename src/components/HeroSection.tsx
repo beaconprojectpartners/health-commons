@@ -8,9 +8,13 @@ const HeroSection = () => (
     <div className="absolute inset-0 gradient-hero opacity-[0.06]" />
     <div className="container relative mx-auto px-4">
       <div className="mx-auto max-w-3xl text-center">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-sm text-primary">
-          <Shield className="h-3.5 w-3.5" />
-          Open-source · Privacy-first · Patient-driven
+        <div className="mb-6 inline-flex max-w-full flex-wrap items-center justify-center gap-x-2 gap-y-1 rounded-2xl border border-primary/20 bg-primary/5 px-3 py-1.5 text-xs text-primary sm:rounded-full sm:px-4 sm:text-sm">
+          <Shield className="h-3.5 w-3.5 shrink-0" />
+          <span>Open-source</span>
+          <span aria-hidden="true">·</span>
+          <span>Privacy-first</span>
+          <span aria-hidden="true">·</span>
+          <span>Patient-driven</span>
         </div>
         <h1 className="mb-4 text-5xl font-extrabold tracking-tight text-foreground md:text-7xl lg:text-8xl" style={{ fontFamily: "'Righteous', cursive" }}>
           DxCommons
