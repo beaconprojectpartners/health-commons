@@ -38,11 +38,6 @@ const HeroSection = () => (
       </div>
 
       {/* Stats */}
-      <div className="mx-auto mt-20 grid max-w-2xl grid-cols-3 gap-6">
-        {[
-          { icon: Users, label: "Conditions Tracked", value: "15+" },
-          { icon: Database, label: "Open Dataset", value: "Free" },
-      {/* Stats */}
       <div className="mx-auto mt-16 flex max-w-3xl flex-wrap justify-center gap-3 sm:gap-4 md:mt-20">
         {[
           { icon: Users, label: "Conditions Tracked", value: "15+" },
