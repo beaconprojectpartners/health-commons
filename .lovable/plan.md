@@ -1,4 +1,6 @@
-# Plan: Moderation system for user-submitted medical terms (Phase 2a — REVISED)
+# Plan: Moderation system for user-submitted medical terms (Phase 2a — SHIPPED)
+
+> **Status:** Phase 2a landed. Schema + `scrub-phi` (AWS Comprehend Medical behind the `PhiDetector` interface) deployed. See `supabase/functions/scrub-phi/README.md` for operational notes.
 
 Incorporates required changes 1–13 from review. **Phase 2a only**: schema + `scrub-phi` edge function. No UI. No `submit-pending-term` yet (lands in 2b).
 
