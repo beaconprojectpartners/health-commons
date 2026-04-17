@@ -112,9 +112,9 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      <section className="py-16">
+      <section className="flex-1 py-16">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-md">
             <Tabs value={tab} onValueChange={setTab}>

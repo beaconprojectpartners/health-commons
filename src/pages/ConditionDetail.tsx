@@ -96,9 +96,9 @@ const ConditionDetail = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <section className="py-16">
+        <section className="flex-1 py-16">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-5xl animate-pulse space-y-6">
               <div className="h-10 w-40 rounded-lg bg-muted" />
@@ -117,9 +117,9 @@ const ConditionDetail = () => {
 
   if (!data) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <section className="py-16">
+        <section className="flex-1 py-16">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-2xl rounded-2xl border border-border bg-card p-8 text-center shadow-card">
               <h1 className="mb-3 text-3xl text-card-foreground">Condition not found</h1>
@@ -138,9 +138,9 @@ const ConditionDetail = () => {
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      <main>
+      <main className="flex-1">
         <section className="border-b border-border bg-secondary/30 py-16">
           <div className="container mx-auto px-4">
             <div className="mx-auto max-w-5xl">

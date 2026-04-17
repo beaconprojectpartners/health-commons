@@ -155,20 +155,20 @@ const Profile = () => {
 
   if (loading || profileLoading) {
     return (
-      <div className="min-h-screen">
+      <div className="flex min-h-screen flex-col">
         <Navbar />
-        <div className="flex min-h-[60vh] items-center justify-center">
-          <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+        <div className="flex flex-1 items-center justify-center">
+          {/* spinner */}
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
         </div>
-        <Footer />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      <section className="py-12">
+      <section className="flex-1 py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">

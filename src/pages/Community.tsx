@@ -280,9 +280,9 @@ const Community = () => {
     receivedWaves?.find((w: any) => w.from_user_id === otherId);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col">
       <Navbar />
-      <section className="py-12">
+      <section className="flex-1 py-12">
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-5xl">
             <div className="mb-8 text-center">

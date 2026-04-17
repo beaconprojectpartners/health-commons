@@ -6,12 +6,14 @@ import PrivacyBanner from "@/components/PrivacyBanner";
 import Footer from "@/components/Footer";
 
 const Index = () => (
-  <div className="min-h-screen">
+  <div className="flex min-h-screen flex-col">
     <Navbar />
-    <HeroSection />
-    <HowItWorks />
-    <ConditionList />
-    <PrivacyBanner />
+    <main className="flex-1">
+      <HeroSection />
+      <HowItWorks />
+      <ConditionList />
+      <PrivacyBanner />
+    </main>
     <Footer />
   </div>
 );
