@@ -257,6 +257,35 @@ const Submit = () => {
               {step === 0 && (
                 <div className="space-y-4">
                   <h2 className="font-heading text-xl text-card-foreground">Your Condition</h2>
+
+                  {myConditions.length > 0 && (
+                    <div>
+                      <p className="mb-2 text-xs text-muted-foreground">Submit data for one of your conditions:</p>
+                      <div className="flex flex-wrap gap-2">
+                        {myConditions.map((c) => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => setConditionId(c.id)}
+                            className={`rounded-full border px-3 py-1 text-xs transition-colors ${
+                              conditionId === c.id
+                                ? "border-primary bg-primary text-primary-foreground"
+                                : "border-border bg-background text-foreground hover:bg-secondary"
+                            }`}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {user && myConditions.length === 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Tip: <Link to="/profile" className="text-primary underline">Add your conditions on your profile</Link> to skip this step next time.
+                    </p>
+                  )}
+
                   <div>
                     <Label>Condition *</Label>
                     <Select value={conditionId} onValueChange={setConditionId}>
