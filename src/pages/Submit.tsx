@@ -24,6 +24,8 @@ const Submit = () => {
   const { user, loading: authLoading } = useAuth();
   const [step, setStep] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [existingSubmissionId, setExistingSubmissionId] = useState<string | null>(null);
+  const [hasLoadedExisting, setHasLoadedExisting] = useState(false);
 
   // Form state
   const [conditionId, setConditionId] = useState(searchParams.get("condition") || "");
