@@ -255,8 +255,27 @@ const Submit = () => {
       time_to_diagnosis: timeTodiagnosis,
       providers_count: providersCount,
       misdiagnoses,
-      symptoms: symptoms.filter((s) => s.name),
-      treatments: treatments.filter((t) => t.name),
+      symptoms: symptoms
+        .filter((s) => s.name)
+        .map((s) => ({
+          name: s.name,
+          severity: s.severity,
+          frequency: s.frequency,
+          bodySystem: s.bodySystem,
+          code_id: s.picked.code_id ?? null,
+          alias_id: s.picked.alias_id ?? null,
+        })),
+      treatments: treatments
+        .filter((t) => t.name)
+        .map((t) => ({
+          name: t.name,
+          type: t.type,
+          effectiveness: t.effectiveness,
+          stillUsing: t.stillUsing,
+          sideEffects: t.sideEffects,
+          code_id: t.picked.code_id ?? null,
+          alias_id: t.picked.alias_id ?? null,
+        })),
       demographics: { age_range: ageRange, biological_sex: biologicalSex, country },
       quality_of_life: { work_impact: workImpact, pain_avg: painAvg, fatigue_avg: fatigueAvg, mental_health_impact: mentalHealthImpact },
       submitter_type: submitterType,
@@ -476,7 +495,13 @@ const Submit = () => {
                       <div className="text-xs font-medium text-muted-foreground">Symptom {i + 1}</div>
                       <div>
                         <Label>Symptom Name</Label>
-                        <Input value={s.name} onChange={(e) => updateSymptom(i, "name", e.target.value)} placeholder="e.g. Joint pain" />
+                        <MedicalTermPicker
+                          value={s.picked}
+                          onChange={(p) => updateSymptomPicked(i, p)}
+                          kind="symptom"
+                          placeholder="e.g. Joint pain"
+                          onRequestPreview={requestPhiPreview("symptom")}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
@@ -512,7 +537,13 @@ const Submit = () => {
                       <div className="text-xs font-medium text-muted-foreground">Treatment {i + 1}</div>
                       <div>
                         <Label>Treatment Name</Label>
-                        <Input value={t.name} onChange={(e) => updateTreatment(i, "name", e.target.value)} placeholder="e.g. Methotrexate" />
+                        <MedicalTermPicker
+                          value={t.picked}
+                          onChange={(p) => updateTreatmentPicked(i, p)}
+                          kind="treatment"
+                          placeholder="e.g. Methotrexate"
+                          onRequestPreview={requestPhiPreview("treatment")}
+                        />
                       </div>
                       <div className="grid grid-cols-2 gap-3">
                         <div>
