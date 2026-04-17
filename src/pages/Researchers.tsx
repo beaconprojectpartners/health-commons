@@ -95,9 +95,9 @@ const ApiAccessCard = () => {
 };
 
 const Researchers = () => (
-  <div className="min-h-screen">
+  <div className="flex min-h-screen flex-col">
     <Navbar />
-
+    <main className="flex-1">
     {/* Hero */}
     <section className="py-20">
       <div className="container mx-auto px-4">
