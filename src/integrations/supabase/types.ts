@@ -49,6 +49,33 @@ export type Database = {
           },
         ]
       }
+      calibration_items: {
+        Row: {
+          active: boolean
+          created_at: string
+          display_text: string
+          expected_decision: string
+          id: string
+          rationale: string | null
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          display_text: string
+          expected_decision: string
+          id?: string
+          rationale?: string | null
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          display_text?: string
+          expected_decision?: string
+          id?: string
+          rationale?: string | null
+        }
+        Relationships: []
+      }
       code_aliases: {
         Row: {
           approved_at: string | null
@@ -399,6 +426,97 @@ export type Database = {
           },
         ]
       }
+      moderation_queue_items: {
+        Row: {
+          claimed_at: string | null
+          claimed_by: string | null
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          id: string
+          is_calibration: boolean
+          pending_code_entry_id: string
+          priority: number
+          rejection_reason:
+            | Database["public"]["Enums"]["moderation_rejection_reason"]
+            | null
+          required_tier: string | null
+          resolution_alias_id: string | null
+          resolution_code_id: string | null
+          shadow_decision: Json | null
+          source: Database["public"]["Enums"]["moderation_source"]
+          status: Database["public"]["Enums"]["moderation_item_status"]
+          updated_at: string
+        }
+        Insert: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          is_calibration?: boolean
+          pending_code_entry_id: string
+          priority?: number
+          rejection_reason?:
+            | Database["public"]["Enums"]["moderation_rejection_reason"]
+            | null
+          required_tier?: string | null
+          resolution_alias_id?: string | null
+          resolution_code_id?: string | null
+          shadow_decision?: Json | null
+          source: Database["public"]["Enums"]["moderation_source"]
+          status?: Database["public"]["Enums"]["moderation_item_status"]
+          updated_at?: string
+        }
+        Update: {
+          claimed_at?: string | null
+          claimed_by?: string | null
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          id?: string
+          is_calibration?: boolean
+          pending_code_entry_id?: string
+          priority?: number
+          rejection_reason?:
+            | Database["public"]["Enums"]["moderation_rejection_reason"]
+            | null
+          required_tier?: string | null
+          resolution_alias_id?: string | null
+          resolution_code_id?: string | null
+          shadow_decision?: Json | null
+          source?: Database["public"]["Enums"]["moderation_source"]
+          status?: Database["public"]["Enums"]["moderation_item_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "moderation_queue_items_pending_code_entry_id_fkey"
+            columns: ["pending_code_entry_id"]
+            isOneToOne: true
+            referencedRelation: "pending_code_entries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_queue_items_resolution_alias_id_fkey"
+            columns: ["resolution_alias_id"]
+            isOneToOne: false
+            referencedRelation: "code_aliases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "moderation_queue_items_resolution_code_id_fkey"
+            columns: ["resolution_code_id"]
+            isOneToOne: false
+            referencedRelation: "medical_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       patient_profiles: {
         Row: {
           bio: string | null
@@ -442,13 +560,13 @@ export type Database = {
           code_system_hint: string | null
           created_at: string
           id: string
+          redacted_text: string
           resolved_alias_id: string | null
           resolved_at: string | null
           resolved_by: string | null
           resolved_code_id: string | null
           status: Database["public"]["Enums"]["pending_code_status"]
           submission_id: string | null
-          submitted_text: string
           submitter_id: string | null
           updated_at: string
         }
@@ -458,13 +576,13 @@ export type Database = {
           code_system_hint?: string | null
           created_at?: string
           id?: string
+          redacted_text: string
           resolved_alias_id?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           resolved_code_id?: string | null
           status?: Database["public"]["Enums"]["pending_code_status"]
           submission_id?: string | null
-          submitted_text: string
           submitter_id?: string | null
           updated_at?: string
         }
@@ -474,13 +592,13 @@ export type Database = {
           code_system_hint?: string | null
           created_at?: string
           id?: string
+          redacted_text?: string
           resolved_alias_id?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
           resolved_code_id?: string | null
           status?: Database["public"]["Enums"]["pending_code_status"]
           submission_id?: string | null
-          submitted_text?: string
           submitter_id?: string | null
           updated_at?: string
         }
@@ -518,6 +636,151 @@ export type Database = {
             columns: ["submission_id"]
             isOneToOne: false
             referencedRelation: "submissions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pending_term_occurrences: {
+        Row: {
+          created_at: string
+          id: string
+          pending_code_entry_id: string
+          submitter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          pending_code_entry_id: string
+          submitter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          pending_code_entry_id?: string
+          submitter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pending_term_occurrences_pending_code_entry_id_fkey"
+            columns: ["pending_code_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pending_code_entries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      phi_eponym_allowlist: {
+        Row: {
+          added_by: string | null
+          category: string
+          created_at: string
+          id: string
+          term: string
+        }
+        Insert: {
+          added_by?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          term: string
+        }
+        Update: {
+          added_by?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          term?: string
+        }
+        Relationships: []
+      }
+      phi_reports: {
+        Row: {
+          created_at: string
+          id: string
+          moderation_queue_item_id: string
+          reason: string
+          reporter_id: string | null
+          resolution_notes: string | null
+          resolved: boolean
+          resolved_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          moderation_queue_item_id: string
+          reason: string
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          moderation_queue_item_id?: string
+          reason?: string
+          reporter_id?: string | null
+          resolution_notes?: string | null
+          resolved?: boolean
+          resolved_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "phi_reports_moderation_queue_item_id_fkey"
+            columns: ["moderation_queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_queue_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      redaction_log: {
+        Row: {
+          counts: Json
+          created_at: string
+          error_code: string | null
+          id: string
+          model_version: string | null
+          moderation_queue_item_id: string | null
+          pending_code_entry_id: string | null
+          phase: Database["public"]["Enums"]["redaction_phase"]
+          provider: string
+        }
+        Insert: {
+          counts?: Json
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          model_version?: string | null
+          moderation_queue_item_id?: string | null
+          pending_code_entry_id?: string | null
+          phase: Database["public"]["Enums"]["redaction_phase"]
+          provider: string
+        }
+        Update: {
+          counts?: Json
+          created_at?: string
+          error_code?: string | null
+          id?: string
+          model_version?: string | null
+          moderation_queue_item_id?: string | null
+          pending_code_entry_id?: string | null
+          phase?: Database["public"]["Enums"]["redaction_phase"]
+          provider?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "redaction_log_moderation_queue_item_id_fkey"
+            columns: ["moderation_queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_queue_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "redaction_log_pending_code_entry_id_fkey"
+            columns: ["pending_code_entry_id"]
+            isOneToOne: false
+            referencedRelation: "pending_code_entries"
             referencedColumns: ["id"]
           },
         ]
@@ -563,6 +826,115 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      reviewer_calibration_attempts: {
+        Row: {
+          answered_at: string
+          calibration_item_id: string
+          chosen_decision: string
+          correct: boolean
+          id: string
+          user_id: string
+        }
+        Insert: {
+          answered_at?: string
+          calibration_item_id: string
+          chosen_decision: string
+          correct: boolean
+          id?: string
+          user_id: string
+        }
+        Update: {
+          answered_at?: string
+          calibration_item_id?: string
+          chosen_decision?: string
+          correct?: boolean
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reviewer_calibration_attempts_calibration_item_id_fkey"
+            columns: ["calibration_item_id"]
+            isOneToOne: false
+            referencedRelation: "calibration_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reviewer_status: {
+        Row: {
+          calibration_completed_at: string | null
+          calibration_score: number | null
+          created_at: string
+          full_access_granted_at: string | null
+          full_access_granted_by: string | null
+          shadow_reviews_completed: number
+          shadow_reviews_required: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          calibration_completed_at?: string | null
+          calibration_score?: number | null
+          created_at?: string
+          full_access_granted_at?: string | null
+          full_access_granted_by?: string | null
+          shadow_reviews_completed?: number
+          shadow_reviews_required?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          calibration_completed_at?: string | null
+          calibration_score?: number | null
+          created_at?: string
+          full_access_granted_at?: string | null
+          full_access_granted_by?: string | null
+          shadow_reviews_completed?: number
+          shadow_reviews_required?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      shadow_review_decisions: {
+        Row: {
+          agreement: boolean | null
+          created_at: string
+          id: string
+          moderation_queue_item_id: string
+          senior_decision: Json | null
+          trainee_decision: Json
+          trainee_id: string
+        }
+        Insert: {
+          agreement?: boolean | null
+          created_at?: string
+          id?: string
+          moderation_queue_item_id: string
+          senior_decision?: Json | null
+          trainee_decision: Json
+          trainee_id: string
+        }
+        Update: {
+          agreement?: boolean | null
+          created_at?: string
+          id?: string
+          moderation_queue_item_id?: string
+          senior_decision?: Json | null
+          trainee_decision?: Json
+          trainee_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shadow_review_decisions_moderation_queue_item_id_fkey"
+            columns: ["moderation_queue_item_id"]
+            isOneToOne: false
+            referencedRelation: "moderation_queue_items"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       specialist_scopes: {
         Row: {
@@ -794,11 +1166,31 @@ export type Database = {
         | "procedure"
         | "medication"
         | "finding"
+      moderation_item_status:
+        | "awaiting"
+        | "in_review"
+        | "approved_new"
+        | "mapped_alias"
+        | "rejected"
+        | "needs_info"
+        | "deferred_to_moderator"
+      moderation_rejection_reason:
+        | "duplicate"
+        | "not_medical"
+        | "phi_leaked"
+        | "nonsense"
+        | "out_of_scope"
+        | "other"
+      moderation_source:
+        | "threshold"
+        | "specialist_suggestion"
+        | "content_report"
       pending_code_status:
         | "pending"
         | "mapped"
         | "new_code_created"
         | "rejected"
+      redaction_phase: "client_preview" | "server_submit" | "review_rescrub"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -936,12 +1328,35 @@ export const Constants = {
         "medication",
         "finding",
       ],
+      moderation_item_status: [
+        "awaiting",
+        "in_review",
+        "approved_new",
+        "mapped_alias",
+        "rejected",
+        "needs_info",
+        "deferred_to_moderator",
+      ],
+      moderation_rejection_reason: [
+        "duplicate",
+        "not_medical",
+        "phi_leaked",
+        "nonsense",
+        "out_of_scope",
+        "other",
+      ],
+      moderation_source: [
+        "threshold",
+        "specialist_suggestion",
+        "content_report",
+      ],
       pending_code_status: [
         "pending",
         "mapped",
         "new_code_created",
         "rejected",
       ],
+      redaction_phase: ["client_preview", "server_submit", "review_rescrub"],
     },
   },
 } as const
