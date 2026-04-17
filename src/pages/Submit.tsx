@@ -320,9 +320,13 @@ const Submit = () => {
         <div className="container mx-auto px-4">
           <div className="mx-auto max-w-2xl">
             <div className="mb-8 text-center">
-              <h1 className="mb-2 font-heading text-3xl text-foreground">Share Your Experience</h1>
+              <h1 className="mb-2 font-heading text-3xl text-foreground">
+                {existingSubmissionId ? "Update Your Submission" : "Share Your Experience"}
+              </h1>
               <p className="text-sm text-muted-foreground">
-                Only condition is required. Everything else is optional. Save your progress anytime.
+                {existingSubmissionId
+                  ? "We loaded your previous answers. Add or edit any section to improve completeness."
+                  : "Only condition is required. Everything else is optional. Save your progress anytime."}
               </p>
             </div>
 
@@ -634,7 +638,7 @@ const Submit = () => {
                     Next <ChevronRight className="ml-1 h-4 w-4" />
                   </Button>
                 ) : (
-                  <Button onClick={handleSubmit}>Submit</Button>
+                  <Button onClick={handleSubmit}>{existingSubmissionId ? "Update" : "Submit"}</Button>
                 )}
               </div>
             </div>
