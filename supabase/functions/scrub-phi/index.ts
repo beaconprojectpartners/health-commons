@@ -235,10 +235,12 @@ Deno.serve(async (req) => {
   // Stage 1: regex
   const regex = regexSpans(inputText);
 
-  // Stage 2: provider
+  // Stage 2: provider (with regex-only fallback on detector failure)
   let providerSpans: PhiSpan[] = [];
   let provider = "aws_comprehend_medical";
   let modelVersion = "unknown";
+  let degraded = false;
+  let degradedCode: string | null = null;
   try {
     const detector = makeDetector();
     const result = await detector.detect(inputText);
@@ -246,21 +248,21 @@ Deno.serve(async (req) => {
     provider = result.provider;
     modelVersion = result.model_version;
   } catch (err) {
-    // Note: we have NOT yet built redacted_text, but we also haven't logged
-    // any text. Record the failure with empty counts and bubble up.
-    const errorCode = (err as { error_code?: string })?.error_code ??
-                      (err as Error)?.message ?? "comprehend_unknown";
+    // Detector unavailable — fall back to regex-only redaction so users can
+    // still submit. We log the failure and mark the response as degraded so
+    // downstream code (and the moderation queue) can flag it for review.
+    degraded = true;
+    degradedCode = (err as { error_code?: string })?.error_code ??
+                   (err as Error)?.message ?? "comprehend_unknown";
+    provider = "regex_only_fallback";
+    modelVersion = "regex_only";
     await logRedaction(supabase, {
       phase: "server_submit",
       counts: {},
       provider,
       model_version: null,
-      error_code: errorCode,
+      error_code: degradedCode,
     });
-    return new Response(
-      JSON.stringify({ error: "phi_detector_unavailable", error_code: errorCode }),
-      { status: 503, headers: { ...corsHeaders, "content-type": "application/json" } },
-    );
   }
 
   // Filter eponyms out of PERSON / PROFESSION spans
