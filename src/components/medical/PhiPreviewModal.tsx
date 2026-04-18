@@ -54,27 +54,9 @@ export function PhiPreviewModal({ open, text, kind, onCancel, onConfirmed }: Pro
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState<ScrubResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [autoSubmitted, setAutoSubmitted] = useState(false);
 
-  useEffect(() => {
-    if (!open || !text) return;
-    setResult(null);
-    setError(null);
-    setLoading(true);
-    supabase.functions
-      .invoke("scrub-phi", { body: { text, context: kind } })
-      .then(({ data, error }) => {
-        if (error) {
-          setError(error.message ?? "PHI check failed");
-        } else {
-          setResult(data as ScrubResult);
-        }
-      })
-      .catch((e) => setError(e?.message ?? "PHI check failed"))
-      .finally(() => setLoading(false));
-  }, [open, text, kind]);
-
-  const handleConfirm = async () => {
-    if (!result) return;
+  const submitTerm = async (scrub: ScrubResult) => {
     setSubmitting(true);
     try {
       const { data, error } = await supabase.functions.invoke("submit-pending-term", {
@@ -108,14 +90,45 @@ export function PhiPreviewModal({ open, text, kind, onCancel, onConfirmed }: Pro
         });
         return;
       }
-      toast({ title: "Submitted for review" });
-      onConfirmed({ stored: true, redacted_text: r.stored_redacted_text ?? result.redacted_text });
+      onConfirmed({ stored: true, redacted_text: r.stored_redacted_text ?? scrub.redacted_text });
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Could not submit";
       toast({ title: "Submission failed", description: msg, variant: "destructive" });
     } finally {
       setSubmitting(false);
     }
+  };
+
+  useEffect(() => {
+    if (!open || !text) return;
+    setResult(null);
+    setError(null);
+    setAutoSubmitted(false);
+    setLoading(true);
+    supabase.functions
+      .invoke("scrub-phi", { body: { text, context: kind } })
+      .then(({ data, error }) => {
+        if (error) {
+          setError(error.message ?? "PHI check failed");
+          return;
+        }
+        const scrub = data as ScrubResult;
+        setResult(scrub);
+        const total = Object.values(scrub.counts ?? {}).reduce((a, b) => a + b, 0);
+        if (total === 0) {
+          // No PHI detected → submit silently, skip modal.
+          setAutoSubmitted(true);
+          void submitTerm(scrub);
+        }
+      })
+      .catch((e) => setError(e?.message ?? "PHI check failed"))
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, text, kind]);
+
+  const handleConfirm = async () => {
+    if (!result) return;
+    await submitTerm(result);
   };
 
   const segments = result ? highlightSpans(text, result.spans) : [];
