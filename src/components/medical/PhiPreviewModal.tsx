@@ -134,8 +134,10 @@ export function PhiPreviewModal({ open, text, kind, onCancel, onConfirmed }: Pro
   const segments = result ? highlightSpans(text, result.spans) : [];
   const totalRedactions = result ? Object.values(result.counts).reduce((a, b) => a + b, 0) : 0;
 
+  const showDialog = open && !autoSubmitted && (loading || error !== null || (result !== null && totalRedactions > 0));
+
   return (
-    <Dialog open={open} onOpenChange={(o) => !o && onCancel()}>
+    <Dialog open={showDialog} onOpenChange={(o) => !o && onCancel()}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>Review your submission</DialogTitle>
