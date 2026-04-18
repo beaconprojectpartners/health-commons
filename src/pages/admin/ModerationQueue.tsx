@@ -51,7 +51,7 @@ const ModerationQueue = () => {
 
   const selected = items?.find((i) => i.id === selectedId) ?? items?.[0];
 
-  const decide = useCallback(async (status: Status, extras?: { rejection_reason?: string }) => {
+  const decide = useCallback(async (status: Status, extras?: { rejection_reason?: "duplicate" | "not_medical" | "phi_leaked" | "nonsense" | "out_of_scope" | "other" }) => {
     if (!selected) return;
     const { error } = await supabase
       .from("moderation_queue_items")

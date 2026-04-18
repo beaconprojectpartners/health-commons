@@ -156,8 +156,10 @@ export class AwsComprehendMedicalDetector implements PhiDetector {
       const res = await fetch(req);
       if (!res.ok) {
         const status = res.status;
-        // Drain body so Deno doesn't leak; we never log it.
-        await res.text().catch(() => "");
+        // AWS error bodies contain only error metadata (no echo of input text).
+        // Safe to log for diagnosing auth/region/permission issues.
+        const errBody = await res.text().catch(() => "");
+        console.error(`[comprehend] HTTP ${status} region=${this.region} body=${errBody}`);
         const err = new Error(`comprehend_http_${status}`);
         // @ts-ignore augment
         err.status = status;
