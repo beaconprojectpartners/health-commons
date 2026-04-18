@@ -300,6 +300,8 @@ Deno.serve(async (req) => {
       counts,
       provider,
       model_version: combinedModelVersion,
+      degraded,
+      degraded_code: degradedCode,
     }),
     { status: 200, headers: { ...corsHeaders, "content-type": "application/json" } },
   );
