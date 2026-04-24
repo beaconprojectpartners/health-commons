@@ -51,13 +51,13 @@ const SpecialistApply = () => {
   const [looking, setLooking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
   const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
   const [conditionSearch, setConditionSearch] = useState("");
-  const [addingCondition, setAddingCondition] = useState(false);
-  const [newConditionIcd, setNewConditionIcd] = useState("");
-  const [creatingCondition, setCreatingCondition] = useState(false);
+  const [icdResults, setIcdResults] = useState<{ code: string; name: string }[]>([]);
+  const [icdLoading, setIcdLoading] = useState(false);
+  const [addingIcdCode, setAddingIcdCode] = useState<string | null>(null);
 
   const [appLoading, setAppLoading] = useState(true);
   const [existingApp, setExistingApp] = useState<any>(null);
@@ -95,13 +95,35 @@ const SpecialistApply = () => {
     (async () => {
       const { data } = await supabase
         .from("conditions")
-        .select("id, name")
-        .eq("approved", true)
+        .select("id, name, icd10_code")
         .order("name");
-      if (!cancelled && data) setConditions(data as Condition[]);
+      if (!cancelled && data) setConditions(data as ConditionRow[]);
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Live ICD-10-CM search via NIH Clinical Tables (no API key)
+  useEffect(() => {
+    const q = conditionSearch.trim();
+    if (q.length < 2) { setIcdResults([]); return; }
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setIcdLoading(true);
+      try {
+        const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=${encodeURIComponent(q)}&maxList=25`;
+        const res = await fetch(url, { signal: ctrl.signal });
+        const json = await res.json();
+        // [total, [codes], null, [[code,name], ...]]
+        const rows: [string, string][] = json?.[3] ?? [];
+        setIcdResults(rows.map(([code, name]) => ({ code, name })));
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setIcdResults([]);
+      } finally {
+        setIcdLoading(false);
+      }
+    }, 200);
+    return () => { ctrl.abort(); clearTimeout(t); };
+  }, [conditionSearch]);
 
   const showForm = useMemo(() => {
     if (!existingApp) return true;
@@ -154,40 +176,36 @@ const SpecialistApply = () => {
     setSelectedConditionIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
-  const createCondition = async () => {
-    const name = conditionSearch.trim();
-    if (!name) return;
-    if (name.length > 120) {
-      toast({ title: "Name too long", description: "Keep it under 120 characters.", variant: "destructive" });
+  const pickIcd = async (icd: { code: string; name: string }) => {
+    // If we already have a condition with this ICD-10 code, just toggle it
+    const existing = conditions.find(
+      (c) => (c.icd10_code ?? "").toUpperCase() === icd.code.toUpperCase(),
+    );
+    if (existing) {
+      toggleCondition(existing.id);
       return;
     }
-    let icd: string | null = null;
-    if (newConditionIcd.trim()) {
-      const ok = icd10Schema.safeParse(newConditionIcd.trim().toUpperCase());
-      if (!ok.success) {
-        toast({ title: "Invalid ICD-10-CM", description: ok.error.issues[0].message, variant: "destructive" });
-        return;
-      }
-      icd = newConditionIcd.trim().toUpperCase();
-    }
-    setCreatingCondition(true);
-    const slug = `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`;
+    setAddingIcdCode(icd.code);
+    const slug = `${slugify(icd.name)}-${icd.code.replace(/\./g, "").toLowerCase()}`;
     const { data, error } = await supabase
       .from("conditions")
-      .insert({ name, slug, icd10_code: icd, created_by: user?.id ?? null, approved: false })
-      .select("id, name")
+      .insert({
+        name: icd.name,
+        slug,
+        icd10_code: icd.code.toUpperCase(),
+        created_by: user?.id ?? null,
+        approved: false,
+      })
+      .select("id, name, icd10_code")
       .single();
-    setCreatingCondition(false);
+    setAddingIcdCode(null);
     if (error || !data) {
       toast({ title: "Could not add condition", description: error?.message ?? "Unknown error", variant: "destructive" });
       return;
     }
-    setConditions((prev) => [...prev, data as Condition].sort((a, b) => a.name.localeCompare(b.name)));
+    setConditions((prev) => [...prev, data as ConditionRow].sort((a, b) => a.name.localeCompare(b.name)));
     setSelectedConditionIds((prev) => [...prev, data.id]);
-    setAddingCondition(false);
-    setNewConditionIcd("");
-    setConditionSearch("");
-    toast({ title: "Condition added", description: "Pending admin approval; selected for your application." });
+    toast({ title: "Condition added", description: `${icd.code} · ${icd.name}` });
   };
 
   const submit = async () => {
