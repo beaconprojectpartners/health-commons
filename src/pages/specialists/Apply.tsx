@@ -296,6 +296,18 @@ const SpecialistApply = () => {
                 {existingApp.npi && <div><span className="text-muted-foreground">NPI: </span><span className="font-mono">{existingApp.npi}</span></div>}
                 {existingApp.primary_taxonomy_display && <div><span className="text-muted-foreground">Primary specialty: </span>{existingApp.primary_taxonomy_display}</div>}
                 {existingApp.institutional_email && <div><span className="text-muted-foreground">Email: </span>{existingApp.institutional_email}</div>}
+                {Array.isArray(existingApp.nppes_payload?.requested_conditions) && existingApp.nppes_payload.requested_conditions.length > 0 && (
+                  <div>
+                    <div className="text-muted-foreground mb-1.5">Conditions:</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {existingApp.nppes_payload.requested_conditions.map((c: { id: string; name: string }) => (
+                        <Badge key={c.id} variant="outline" className="border-fuchsia-500/40 text-fuchsia-600 dark:text-fuchsia-400">
+                          {c.name}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
                 {(existingApp.status === "needs_info" || existingApp.status === "pending" || existingApp.status === "in_review") && (
                   <div className="mt-3 flex gap-2">
                     <Button variant="secondary" onClick={() => setForceReapply(true)}>Update & resubmit</Button>
