@@ -118,7 +118,7 @@ const SpecialistApply = () => {
         // [total, [codes], null, [[code,name], ...]]
         const rows: [string, string][] = json?.[3] ?? [];
         const topLevel = rows
-          .filter(([code]) => /^[A-TV-Z][0-9][0-9AB](?:\.[0-9A-Z])?$/.test(code))
+          .filter(([code]) => /^[A-TV-Z][0-9][0-9AB]$/.test(code))
           .slice(0, 25)
           .map(([code, name]) => ({ code, name }));
         setIcdResults(topLevel);
