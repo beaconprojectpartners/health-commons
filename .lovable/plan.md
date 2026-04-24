@@ -1,279 +1,125 @@
-# Plan: Moderation system for user-submitted medical terms (Phase 2a — SHIPPED)
 
-> **Status:** Phase 2a landed. Schema + `scrub-phi` (AWS Comprehend Medical behind the `PhiDetector` interface) deployed. See `supabase/functions/scrub-phi/README.md` for operational notes.
 
-Incorporates required changes 1–13 from review. **Phase 2a only**: schema + `scrub-phi` edge function. No UI. No `submit-pending-term` yet (lands in 2b).
+# Specialist Governance & Moderation System
 
----
+Build the peer-led specialist governance infrastructure now and operate it manually through Phases 0–1. No patient moderation tier. No "trainee" tier. Researchers are unrelated to specialists.
 
-## Required changes incorporated
+## Roles (independent)
 
-1. **Sign-in required for free-text submissions.** Anon-hash dropped. Anon users may pick existing codes only. RLS on `pending_term_occurrences` and `pending_code_entries` insert paths require `auth.role() = 'authenticated'` for free-text. Threshold logic just counts distinct `submitter_id` (uuid not null).
-2. **"Curator" → "moderator"** everywhere. Decision action is **"Defer to moderator."** No `curator` enum values or column names anywhere in schema.
-3. **No admin-only confirmation on "Approve as new canonical code."** Full-tier specialists in scope can approve directly. Tagged in code as:
-   ```
-   -- TODO(governance): Approval rights are currently "any specialist in scope OR admin".
-   -- Once peer-governance tiers land, gate on required_tier column on moderation_queue_items.
-   -- Removal trigger: governance tier system shipped + tier assignment UI live.
-   ```
-4. **Audit Supabase logging before shipping.** Action item, executed as part of Phase 2a delivery (not a code change but a documented finding in the migration PR description). Plan:
-   - Confirm default Edge Function log behavior (request body capture: yes/no by default).
-   - For `scrub-phi` and `submit-pending-term` (when it lands), verify no body logging. If unavoidable at platform layer, scrub at function boundary by never letting raw text touch a `console.log`/`console.error`. All thrown errors carry only `{ counts, model_version, phase }`.
-   - Findings documented inline in migration PR.
-5. **Error-reporter scrubbing.** No Sentry/error-tracker is currently wired in this project (verified — no `@sentry/*` deps, no DSN secret). When one is added later, the policy is:
-   - Configure request-data scrubbing on `submit-pending-term` and `scrub-phi`.
-   - In code, raw text variables go out of scope (reassigned to `null` or block-scoped) **before** any awaited call that could throw post-scrub.
-   - Documented as a project rule in this plan; will be enforced when error tracking is introduced.
-6. **Backup retention window — documented.** Lovable Cloud (Supabase) PITR/backup retention applies to all tables. The currently-empty `pending_code_entries.submitted_text` column is being **renamed to `redacted_text`** in 2a (safe — table is empty so no pre-scrub text exists). Going forward, only redacted text is ever written, so the backup window is not a leak vector for *future* data. **No backup-scrubbing pass needed for Phase 2a** because the table is empty. If we ever discover a regression that wrote raw text post-launch, we'll run a targeted backup-scrub pass at that time. **Decision: accept the window (it's empty), document the policy.**
-7. **Presidio for PHI Stage 1+2; LLM only for Stage 3 adjudication.** `scrub-phi` pipeline:
-   - **Stage 1 — Regex**: phone, email, SSN, MRN-like, dates, addresses, URLs (kept as today, hardened).
-   - **Stage 2 — Presidio NER**: Microsoft Presidio is a Python library; we ship it as a *separate* edge runtime. Since Lovable edge functions are Deno-only, Phase 2a implementation: package Presidio behind a small HTTP service deployed alongside (next sub-step within 2a). The Deno `scrub-phi` function calls it. Presidio recognizers used: `PERSON, LOCATION, DATE_TIME, PHONE_NUMBER, EMAIL_ADDRESS, US_SSN, MEDICAL_LICENSE, US_DRIVER_LICENSE, IP_ADDRESS, URL, AGE`. Plus a custom `MRN` recognizer.
-   - **Stage 3 — LLM adjudication (low-confidence only)**: spans below Presidio's confidence threshold (e.g. `<0.55`) get sent to Lovable AI (`google/gemini-2.5-flash`) with a tightly-scoped tool-calling schema and the eponym allowlist as context. Ambiguous → redact (fail closed).
-   - **Eponym allowlist** post-pass: `PERSON` spans matching `phi_eponym_allowlist` are un-flagged.
-   - **No preview models in core path.** Stage 3 uses a stable model.
-   - **If Presidio service is unreachable, scrub-phi returns 503.** Never falls back to "regex only" silently.
-8. **Show users what was stored after server-side re-scrub (Pattern B).** When `submit-pending-term` lands in 2b, response shape will be `{ status: 'stored' | 'matched' | 'rejected_phi', stored_redacted_text?, match?: {...}, redactions_applied: { ... } }`. UI surfaces `stored_redacted_text` in a confirmation toast/modal so the user sees the final form. (Phase 2a only sets up the schema to support this; the function itself ships in 2b.)
-9. **Surface strong-embedding auto-matches to the user.** When 2b's `submit-pending-term` returns `matched: true`, the response includes `{ matched: true, code: {id, display, system}, alias_used?, score }` and the UI shows a "We matched this to **<display>** — wrong? Flag it" affordance. Flag goes to `phi_reports`-equivalent flow (a new `match_reports` table — added to the 2b plan, not 2a).
-10. **Rate limiting on submit-pending-term (2b).** Per-user (e.g. 30/hour, 200/day) and per-IP (e.g. 60/hour) caps via a `submission_rate_buckets` table written in 2b. Phase 2a stub: nothing required, noted here so it lands in 2b.
-11. **Span coordinates: indexed into ORIGINAL text.** `scrub-phi` response: `spans: [{type, start, end, score}]` where `start`/`end` are character offsets into the **original input string** the caller supplied. `redacted_text` is the original with each span replaced by `[REDACTED:<TYPE>]`. Documented in the function's response schema and a JSDoc comment.
-12. **Shadow-review ground-truth = tech debt.** v1 uses any full-access reviewer's decision as ground truth. Plan flags this as **tech debt: real shadow-review signal requires moderator or panel review; revisit when peer-governance tiers ship.**
-13. **`required_tier` column on `moderation_queue_items` (reserved).** Added as `text NULL` with a column comment:
-    ```sql
-    COMMENT ON COLUMN public.moderation_queue_items.required_tier IS
-      'Reserved for peer-governance integration. Unused in Phase 2a. When governance ships, populate with the minimum reviewer tier required to act on this item.';
-    ```
-
----
-
-## Architecture overview (unchanged shape, revised wording)
-
-```
-User free text  (REQUIRES SIGN-IN to add new)
-   │
-   ▼
-[1] resolve-medical-term  ── embedding similarity → top 5 matches
-   │
-   ├── user picks a match            → done (link to existing code)
-   ├── strong auto-match returned    → confirmation w/ "wrong? flag it"
-   │
-   └── user clicks "Add new"
-         │
-         ▼
-   [2] scrub-phi (preview)  ── Presidio (regex + NER)  → eponym un-flag
-         │                     → LLM Stage 3 only for low-confidence
-         ▼
-   Preview modal with redactions highlighted
-         │
-   Confirm
-         ▼
-   [3] submit-pending-term  ── re-scrubs (final enforcement)
-         │                     → rate-limit check
-         │                     → response shows final redacted text
-         │                     → never stores original text
-         ▼
-   pending_code_entries (redacted_text only) + occurrence row
-         │
-         ▼
-   Threshold gate: ≥3 occurrences from distinct signed-in users
-   (specialist suggestions + content reports bypass)
-         │
-         ▼
-   moderation_queue_items ── reviewers act
-         │
-         ▼
-   On approve: new medical_code or new code_alias  (no admin gate)
+```text
+Patient        default; submits data, participates in community
+Researcher    self-registers, signs DUA, gets data access — no credentials
+Specialist    NPI + institutional email + document + 3-peer panel approval
+              ├─ Contributing  (entry; all edits → moderation queue)
+              ├─ Core          (~20 approved + 90 days; in-scope direct edits)
+              └─ Moderator     (elected; cross-specialty + dispute oversight)
 ```
 
----
+A user can hold any combination. Permission checks are per-view, scoped to the active role.
 
-## Schema additions (Phase 2a)
+## What gets built
 
-All tables get RLS. All inserts/updates go through helper functions where useful.
+### 1. Specialist application & vetting (peer panels)
 
-### 1. `phi_eponym_allowlist`
-- `id` uuid PK
-- `term` citext UNIQUE
-- `category` text (`disease_eponym`, `procedure_eponym`)
-- `added_by` uuid, `created_at`
-- **RLS**: public read; admin insert/update.
-- **Seed**: Crohn, Hashimoto, Ehlers-Danlos, Sjögren, Behçet, Raynaud, Wegener, Tourette, Asperger, Parkinson, Alzheimer, Huntington, Down, Marfan, Turner, Klinefelter, Kawasaki, Kaposi, Hodgkin, Bell, Charcot, Guillain-Barré, Lou Gehrig, Lyme, **ALS, myasthenia gravis, Stevens-Johnson, Peyronie, Dupuytren, Osler-Weber-Rendu, von Willebrand, Gilbert, Takayasu**.
+- `/specialists/apply` — collects NPI, institutional email (verified via emailed token), credential document upload, primary specialty confirmation. Calls NPPES API edge function to fetch authoritative name + taxonomy + active status.
+- On submit, system assigns a random panel of 3 existing specialists (2 in-specialty, 1 cross-specialty when possible), weighted toward those who haven't served recently.
+- `/specialists/panels` — invited panelists see open applications, cast approve / reject / needs-info with written reasoning visible to other panelists. 7-day SLA.
+- Approval = 2-of-3 with no unresolved concerns. Auto-grants Contributing tier.
+- During Phase 0 (no specialists yet), the founder/admin acts as the panel and all decisions are logged identically.
 
-### 2. Rename `pending_code_entries.submitted_text` → `redacted_text`
-- Table is empty → safe rename, no backfill needed.
-- Column comment: `'Redacted text only. Original submitter text MUST NEVER be written here. Enforced by submit-pending-term server-side re-scrub.'`
+### 2. Specialty + cluster declaration
 
-### 3. `pending_term_occurrences`
-- `id` uuid PK
-- `pending_code_entry_id` uuid → `pending_code_entries.id`
-- `submitter_id` uuid **NOT NULL** (sign-in required)
-- `created_at`
-- UNIQUE `(pending_code_entry_id, submitter_id)` — one occurrence per user per term.
-- **RLS**: submitter reads own; specialists/admins read all; insert only by authenticated user where `submitter_id = auth.uid()`.
+- NPI taxonomy is authoritative for specialty; specialist confirms primary if dual-boarded but cannot edit.
+- `/specialists/clusters` — opt into disease clusters (MCAS/EDS/POTS, Long COVID, Pediatric rare, Chronic pain, Mental health) seeded at launch. Cluster membership is the "focus not in NPI" escape hatch.
+- Periodic NPI re-verification job (90–180 days) flags drift and license loss.
 
-### 4. `moderation_queue_items`
-- `id` uuid PK
-- `pending_code_entry_id` uuid → `pending_code_entries.id` UNIQUE
-- `priority` int default 0 (specialist=10, report=20)
-- `source` enum `moderation_source`: `threshold | specialist_suggestion | content_report`
-- `status` enum `moderation_item_status`: `awaiting | in_review | approved_new | mapped_alias | rejected | needs_info | deferred_to_moderator`
-- `claimed_by` uuid nullable, `claimed_at` timestamptz
-- `decided_by` uuid nullable, `decided_at` timestamptz
-- `decision_notes` text (must be scrubbed before save — enforced in 2c)
-- `resolution_alias_id` uuid nullable
-- `resolution_code_id` uuid nullable
-- `rejection_reason` enum nullable: `duplicate | not_medical | phi_leaked | nonsense | out_of_scope | other`
-- `shadow_decision` jsonb nullable
-- `required_tier` text NULL  ← **reserved for governance, see #13**
-- `created_at`, `updated_at`
-- **RLS**: full-access specialists in scope OR admins read/update; trainees read-only filtered by `is_calibration` flag (reserved column too).
+### 3. Tier progression (per specialty + per cluster, independent)
 
-### 5. `redaction_log`
-- `id` uuid PK
-- `pending_code_entry_id` uuid nullable
-- `moderation_queue_item_id` uuid nullable
-- `phase` enum: `client_preview | server_submit | review_rescrub`
-- `counts` jsonb (e.g. `{ "PERSON": 1, "PHONE": 0, ... }`)
-- `model_version` text
-- `created_at`
-- **RLS**: admin read only.
-- **Never stores text.**
+- Contributing → Core auto-promotion eligibility check: ≥20 approved contributions in scope, ≥90 days, no sustained reversals. Promotion logged.
+- Tier dashboard at `/specialists` shows progress per scope.
 
-### 6. `reviewer_status`
-- `user_id` uuid PK
-- `calibration_completed_at` timestamptz
-- `calibration_score` real
-- `shadow_reviews_completed` int default 0
-- `shadow_reviews_required` int default 20
-- `full_access_granted_at` timestamptz
-- `full_access_granted_by` uuid
-- **RLS**: user reads own; admin reads/writes all.
+### 4. Moderation queue with scope enforcement
 
-### 7. `calibration_items`
-- `id` uuid PK
-- `display_text` text (pre-scrubbed seed; safe)
-- `expected_decision` text
-- `rationale` text
-- `active` bool default true
-- **RLS**: trainees + reviewers read active rows; admin writes.
-- **Calibration size: 15 items**, **80% pass.** (Up from 10 per review feedback.)
+- All vocabulary edits from Contributing specialists go to `moderation_queue_items`.
+- Core specialists' in-scope edits apply directly and stream into `vocabulary_edit_log` (public).
+- Out-of-scope Core edits route to the queue regardless of tier.
+- Existing `/admin/moderation` page becomes `/specialists/moderation`, filtered by viewer's scope (specialty + clusters). Only Core and Moderator tiers see it. Admins see all.
+- The `required_tier` column on `moderation_queue_items` becomes `'core' | 'moderator' | 'admin'` (no community tier).
 
-### 8. `reviewer_calibration_attempts`
-- `id`, `user_id`, `calibration_item_id`, `chosen_decision`, `correct`, `answered_at`
-- **RLS**: user reads own; admin reads all.
+### 5. Elections, juries, recalls (Phase 2-ready, built now)
 
-### 9. `shadow_review_decisions`
-- `id`, `moderation_queue_item_id`, `trainee_id`, `trainee_decision` jsonb, `senior_decision` jsonb, `agreement` bool, `created_at`
-- Comment: **TECH DEBT — ground truth is "any full-access reviewer." Real signal requires moderator/panel review.**
-- **RLS**: trainee reads own; senior reviewers read where they are senior; admin reads all.
+- `/governance/elections` — annual moderator elections per cluster, staggered 6-month cycles, vote weighting (1.0 own / 0.25 adjacent / 0 unrelated), 2-term limit + 1-term cooldown.
+- Recall: 10% of cluster initiates → majority passes.
+- Sortition juries: random panels of 5 Core specialists for contested edits, application appeals, moderator action challenges. `/governance/juries`.
+- Built and visible from launch; founder operates manually until thresholds hit.
 
-### 10. `phi_reports`
-- `id`, `moderation_queue_item_id`, `reporter_id`, `reason`, `resolved` bool, `resolution_notes`, `created_at`
-- **RLS**: reporter reads own; reviewers/admin read & resolve.
+### 6. Transparency layer (public to all signed-in users, including patients)
 
----
+- `/governance/log` — immutable feed of vocabulary edits, panel decisions, moderator actions, election results, jury reasoning. Aggregate vote patterns visible; individual votes can be private.
+- Public review period: significant edits (e.g., new code aliases tagged "high-impact") sit 7 days before taking effect; any signed-in user can flag during the window.
 
-## Edge function in Phase 2a: `scrub-phi`
+### 7. Emergency powers
 
-### PHI detection: AWS Comprehend Medical (Stages 1–2), behind a swappable interface
+- Admins/Moderators can act unilaterally on PHI leaks and harassment. Every emergency action writes to `emergency_action_log` and surfaces in the public transparency feed for post-hoc review.
 
-**Decision:** Stages 1+2 of PHI detection use **AWS Comprehend Medical's `DetectPHI`** operation — purpose-built for the 18 HIPAA identifiers, returns structured entity types that map cleanly to our redaction schema. Stage 3 LLM adjudication remains as designed.
+### 8. Bootstrap phase indicator
 
-**Swap path:** All PHI-provider logic is hidden behind a TypeScript interface inside `scrub-phi`. A future migration to self-hosted Presidio (Fly.io / Cloud Run) is a backend swap, not a rewrite. Documented in code comments and in `supabase/functions/scrub-phi/README.md`.
+- `/governance` shows current Phase (0/1/2/3), the Phase-2 trigger (~50 specialists across 5 clusters), and a public commitment statement. Phase advancement is admin-only and logged.
 
-```ts
-// supabase/functions/scrub-phi/providers/types.ts
-export interface PhiDetector {
-  detectPhi(text: string): Promise<{
-    redacted_text: string;
-    spans: Array<{ type: string; start: number; end: number; score: number }>;
-    counts: Record<string, number>;
-    provider: string;        // e.g. 'aws_comprehend_medical'
-    model_version: string;   // provider-reported model version
-  }>;
-}
+## Data model additions
+
+- `specialist_applications` — npi, institutional_email, email_verified_at, document_url, primary_taxonomy, secondary_taxonomies, status, decided_at
+- `vetting_panels` (id, application_id, sla_due_at) and `vetting_panel_votes` (panel_id, voter_id, vote, reasoning, created_at)
+- `specialty_clusters` — id, name, terminology_scope (seed: 5 clusters above)
+- `cluster_memberships` (user_id, cluster_id, joined_at)
+- `cluster_proposals` (proposer_id, name, scope, supporters[]) for new clusters
+- `specialist_tiers` (user_id, scope_type 'specialty'|'cluster', scope_id, tier 'contributing'|'core'|'moderator', granted_at, granted_reason, granted_by)
+- `moderator_seats` (cluster_id, scope_type, term_start, term_end, holder_id)
+- `elections`, `election_candidates`, `election_votes`, `recalls`, `recall_votes`
+- `juries`, `jury_decisions`, `jury_deliberations`
+- `vocabulary_edit_log` — immutable, public; references medical_codes/code_aliases/disease_profiles
+- `npi_reverification_log` (user_id, checked_at, status, taxonomy_drift)
+- `emergency_action_log` (actor_id, target_type, target_id, action, reason, created_at)
+
+Reuse existing: `user_roles`, `specialist_scopes` (deprecate in favor of `specialist_tiers`), `moderation_queue_items`, `phi_reports`, `match_reports`. Drop trainee/calibration UI usage; keep the tables dormant for now (no schema removal yet).
+
+## Routing additions to `App.tsx`
+
+```text
+/specialists/apply              public-to-authed application form
+/specialists                    specialist hub (tiers, scopes, clusters)
+/specialists/panels             invited panel reviews
+/specialists/clusters           cluster opt-in
+/specialists/moderation         scope-filtered queue (Core+ only)
+/specialists/profiles/new       Claude-assisted disease profile authoring
+/specialists/profiles/:id/edit
+/specialists/aliases            in-scope alias proposals
+/governance                     phase indicator + commitments
+/governance/log                 public transparency feed
+/governance/elections           election center
+/governance/juries              jury participation
+/admin/specialists              admin: applications, tiers, panels, phases
 ```
 
-Implementations: `AwsComprehendMedicalDetector` (Phase 2a). Future: `PresidioSidecarDetector` (drop-in).
+`HowItWorks` Specialist CTA → `/specialists/apply` (signed in) or `/auth?next=/specialists/apply`.
 
-### Inputs
-```ts
-{
-  text: string,                // original input
-  context?: 'symptom'|'treatment'|'condition'|'note'
-}
-```
+## Edge functions
 
-### Output
-```ts
-{
-  redacted_text: string,                              // spans replaced with [REDACTED:<TYPE>]
-  spans: Array<{ type: string, start: number, end: number, score: number }>, // start/end into ORIGINAL text (#11)
-  counts: Record<string, number>,                     // by type
-  provider: string,                                   // 'aws_comprehend_medical'
-  model_version: string                               // Comprehend's ModelVersion from response, optionally suffixed with adjudication model
-}
-```
+- `nppes-lookup` — NPPES NPI Registry API proxy (public API, no key required); returns name, taxonomy[], status.
+- `verify-institutional-email` — sends/validates token to .edu/.org/hospital domains via existing email infra.
+- `assign-vetting-panel` — service-role function to pick 3 specialists with weighting + recency.
+- `tier-promotion-check` — nightly job evaluating Contributing→Core eligibility.
+- `npi-reverify` — periodic re-check job.
+- Reuse `claude-profile-draft`, `claude-code-suggest` inside specialist tools.
 
-### Pipeline
-1. **Regex** (Deno-side) — phone, email, SSN, MRN, dates, addresses, URLs (defense in depth; cheap pre-filter).
-2. **AWS Comprehend Medical `DetectPHI`** via the `PhiDetector` interface. Endpoint: `us-east-1` (primary) with `us-west-2` as documented failover region. Maps Comprehend entity types (`NAME, ADDRESS, AGE, DATE, EMAIL, ID, PHONE_OR_FAX, PROFESSION, URL`, etc.) to our internal types. Captures Comprehend's `ModelVersion` for the log.
-3. **Eponym allowlist** — Comprehend `NAME`/`ORGANIZATION`-equivalent spans whose text matches `phi_eponym_allowlist` (citext compare) are filtered out. Mitigates Comprehend flagging "Crohn", "Sjögren", etc. as names.
-4. **LLM Stage 3 adjudication** — only spans where Comprehend `score < 0.85`; Lovable AI `google/gemini-2.5-flash` w/ tool-calling schema and the eponym list as context. Ambiguous → redact (fail closed).
-5. Span merge + sort by `start`, build `redacted_text`.
+## Phase 0/1 operating mode
 
-### Region & BAA
-- Endpoint: `us-east-1` (primary), `us-west-2` (failover). Both support Comprehend Medical.
-- DxCommons is **not currently a covered entity**, so no BAA is in place. Documented in `supabase/functions/scrub-phi/README.md` so a future operator knows to execute AWS's BAA before scaling beyond research-pilot status.
+All structures live; founder/admin can act as panel-of-1, jury-of-1, election-of-0 with every decision recorded in the same logs the elected system will use. `/governance` displays current phase and the public Phase-2 trigger. No code paths short-circuit transparency.
 
-### Credentials & IAM
-- Secrets: `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION` (default `us-east-1`).
-- IAM user must be scoped to **only** `comprehendmedical:DetectPHI` — no other actions, no broad-access keys, no root credentials. IAM policy example included in the function README.
+## Out of scope for this build
 
-### Error handling
-- On Comprehend timeout or 5xx: **retry once** with exponential backoff (250ms then 1s). On second failure: submission **fails** (no fallback to storing raw text — preserves the existing rule).
-- Failure writes a `redaction_log` row with `provider='aws_comprehend_medical'`, `counts={}`, and `error_code` populated (e.g. `comprehend_timeout`, `comprehend_5xx`, `comprehend_throttled`).
-- If Comprehend is unreachable end-to-end, scrub-phi returns **503**. Never silently downgrades to "regex only."
+- No patient moderation tier or `community_votes` table.
+- No trainee/calibration/shadow-review UI; existing tables remain untouched but unused.
+- Researcher flow unchanged (already uses DUA model via `researchers` table).
+- Rate limiting on submission viewing (correlation defense) is a known gap; logged in `/governance` roadmap, not implemented now.
 
-### Logging policy
-- No `console.log` / `console.error` ever sees `text`.
-- `text` is passed only to scrubbers; once `redacted_text` is built, the local `text` variable is reassigned to `''` before any subsequent `await`.
-- All errors carry only `{ counts, provider, model_version, phase, error_code }`.
-- Supabase Edge Function default body logging: **verified disabled** (documented in PR).
-
-### Cost & swap-trigger documentation
-- Comprehend Medical pricing (current): **$0.0014 per 100 characters** for DetectPHI. ~$1.40 per 100k characters.
-- Admin dashboard (Phase 2e) shows daily Comprehend call count, character volume, and estimated cost.
-- **Swap-evaluation threshold:** when monthly Comprehend spend exceeds **~$300/mo** (≈21M characters), evaluate migrating to self-hosted Presidio on Fly.io. Documented in the function README.
-
-### Schema addition for #2 (revised): `redaction_log`
-The table specified earlier in this plan gains two columns to support the provider abstraction:
-- `provider` text NOT NULL
-- `error_code` text NULL
-
-### What does NOT ship in Phase 2a
-- `submit-pending-term` (Phase 2b)
-- `report-phi` (Phase 2c)
-- Any UI (`MedicalTermPicker`, `PhiPreviewModal`, queue, onboarding, admin dashboard)
-- Rate limiting infra (Phase 2b — `submission_rate_buckets`)
-- Match-flag table (Phase 2b — `match_reports`)
-- Cost dashboard tile (Phase 2e — admin dashboard)
-
----
-
-## Phase 2a deliverables checklist (so reviewer can verify)
-
-- [ ] Migration: tables 1–10 above + RLS + the `submitted_text` → `redacted_text` rename + column comments + the governance `required_tier` reserved column + `provider` and `error_code` columns on `redaction_log` + `TODO(governance)` comment block on the medical_codes/code_aliases approve path.
-- [ ] Seed: `phi_eponym_allowlist` with the full list (originals + ALS, myasthenia gravis, Stevens-Johnson, Peyronie, Dupuytren, Osler-Weber-Rendu, von Willebrand, Gilbert, Takayasu).
-- [ ] Secrets requested: `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION`.
-- [ ] Edge function `scrub-phi` with the `PhiDetector` interface, the `AwsComprehendMedicalDetector` implementation, the documented pipeline, and `README.md` covering: provider swap path, IAM-policy template, region/BAA note, cost model + swap threshold.
-- [ ] PR description includes: Supabase logging audit findings, backup retention decision, error-tracker policy, span-coordinate spec, governance TODO removal trigger, shadow-review tech-debt note.
-
----
-
-## Confirmations before writing the migration
-
-1. **Provider:** AWS Comprehend Medical `DetectPHI` for Stages 1–2, behind the swappable `PhiDetector` interface. ✅ (per this update)
-2. **Rename:** `pending_code_entries.submitted_text` → `redacted_text`. Table is empty — safe rename, no backfill.
-3. **Secrets:** I'll request `AWS_COMPREHEND_KEY_ID`, `AWS_COMPREHEND_SECRET`, `AWS_COMPREHEND_REGION` as the next step. The user must create an IAM user scoped to `comprehendmedical:DetectPHI` only and paste the credentials in.
-
-Ready to execute Phase 2a — say the word and I'll request the AWS secrets, then write the migration and the `scrub-phi` function.
