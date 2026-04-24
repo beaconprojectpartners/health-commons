@@ -196,8 +196,29 @@ const SpecialistApply = () => {
                 {existingApp.npi && <div><span className="text-muted-foreground">NPI: </span><span className="font-mono">{existingApp.npi}</span></div>}
                 {existingApp.primary_taxonomy_display && <div><span className="text-muted-foreground">Primary specialty: </span>{existingApp.primary_taxonomy_display}</div>}
                 {existingApp.institutional_email && <div><span className="text-muted-foreground">Email: </span>{existingApp.institutional_email}</div>}
-                {existingApp.status === "needs_info" && (
-                  <Button variant="secondary" className="mt-3" onClick={() => setForceReapply(true)}>Update & resubmit</Button>
+                {(existingApp.status === "needs_info" || existingApp.status === "pending" || existingApp.status === "in_review") && (
+                  <div className="mt-3 flex gap-2">
+                    <Button variant="secondary" onClick={() => setForceReapply(true)}>Update & resubmit</Button>
+                    {existingApp.status !== "in_review" && (
+                      <Button
+                        variant="outline"
+                        onClick={async () => {
+                          const { error } = await supabase
+                            .from("specialist_applications")
+                            .update({ status: "withdrawn" })
+                            .eq("id", existingApp.id);
+                          if (error) {
+                            toast({ title: "Could not withdraw", description: error.message, variant: "destructive" });
+                            return;
+                          }
+                          setExistingApp({ ...existingApp, status: "withdrawn" });
+                          toast({ title: "Application withdrawn" });
+                        }}
+                      >
+                        Withdraw
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
