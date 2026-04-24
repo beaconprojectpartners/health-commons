@@ -21,6 +21,9 @@ export const useAuth = () => {
   }, []);
 
   const signOut = async () => {
+    try {
+      sessionStorage.removeItem("dx_session_started_at");
+    } catch { /* ignore */ }
     await supabase.auth.signOut();
   };
 

@@ -12,6 +12,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Community from "./pages/Community";
 import NotFound from "./pages/NotFound";
+import { SessionGuard } from "./components/auth/SessionGuard";
 
 const queryClient = new QueryClient();
 
@@ -21,6 +22,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <SessionGuard />
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/conditions" element={<Conditions />} />
