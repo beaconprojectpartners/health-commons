@@ -76,7 +76,7 @@ const SpecialistApply = () => {
     setSubmitting(true);
     const primary = (lookup.taxonomies ?? []).find((t) => t.code === primaryCode);
     const secondary = (lookup.taxonomies ?? []).filter((t) => t.code !== primaryCode);
-    const { data: app, error } = await supabase.from("specialist_applications").insert({
+    const insertRow = {
       user_id: user.id,
       npi,
       full_name: lookup.full_name ?? null,
@@ -84,11 +84,12 @@ const SpecialistApply = () => {
       document_url: documentUrl || null,
       primary_taxonomy: primaryCode,
       primary_taxonomy_display: primary?.desc ?? null,
-      secondary_taxonomies: secondary,
-      nppes_payload: lookup as unknown as Record<string, unknown>,
+      secondary_taxonomies: secondary as unknown as never,
+      nppes_payload: lookup as unknown as never,
       decision_notes: bio || null,
-      status: "pending",
-    }).select().single();
+      status: "pending" as const,
+    };
+    const { data: app, error } = await supabase.from("specialist_applications").insert(insertRow).select().single();
     setSubmitting(false);
     if (error || !app) {
       toast({ title: "Submission failed", description: error?.message ?? "Unknown error", variant: "destructive" });
