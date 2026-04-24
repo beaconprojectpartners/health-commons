@@ -9,13 +9,15 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useToast } from "@/hooks/use-toast";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Auth = () => {
   const [tab, setTab] = useState("signin");
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = searchParams.get("next") || "/";
   const [googleLoading, setGoogleLoading] = useState(false);
   const [appleLoading, setAppleLoading] = useState(false);
 
@@ -23,7 +25,7 @@ const Auth = () => {
     const setLoading = provider === "google" ? setGoogleLoading : setAppleLoading;
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth(provider, {
-      redirect_uri: window.location.origin,
+      redirect_uri: `${window.location.origin}${nextPath}`,
     });
     if (result.error) {
       toast({ title: "Error", description: String(result.error), variant: "destructive" });
@@ -32,7 +34,7 @@ const Auth = () => {
     }
     if (result.redirected) return;
     toast({ title: "Welcome!" });
-    navigate("/");
+    navigate(nextPath);
   };
 
   // Sign In
@@ -53,7 +55,7 @@ const Auth = () => {
       toast({ title: "Sign in failed", description: "Invalid email or password. Please try again.", variant: "destructive" });
     } else {
       toast({ title: "Welcome back!" });
-      navigate("/");
+      navigate(nextPath);
     }
   };
 
