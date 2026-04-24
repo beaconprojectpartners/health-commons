@@ -110,12 +110,18 @@ const SpecialistApply = () => {
     const t = setTimeout(async () => {
       setIcdLoading(true);
       try {
-        const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=${encodeURIComponent(q)}&maxList=25`;
+        // Fetch a wider set, then keep only top-level codes (3-char category like "E11"
+        // or single-decimal like "E11.9") to avoid the very long billable subcodes.
+        const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=${encodeURIComponent(q)}&maxList=200`;
         const res = await fetch(url, { signal: ctrl.signal });
         const json = await res.json();
         // [total, [codes], null, [[code,name], ...]]
         const rows: [string, string][] = json?.[3] ?? [];
-        setIcdResults(rows.map(([code, name]) => ({ code, name })));
+        const topLevel = rows
+          .filter(([code]) => /^[A-TV-Z][0-9][0-9AB](?:\.[0-9A-Z])?$/.test(code))
+          .slice(0, 25)
+          .map(([code, name]) => ({ code, name }));
+        setIcdResults(topLevel);
       } catch (e: any) {
         if (e?.name !== "AbortError") setIcdResults([]);
       } finally {
