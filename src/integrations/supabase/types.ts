@@ -1346,6 +1346,41 @@ export type Database = {
           },
         ]
       }
+      researcher_favorites: {
+        Row: {
+          condition_id: string | null
+          created_at: string
+          filters: Json
+          id: string
+          label: string
+          user_id: string
+        }
+        Insert: {
+          condition_id?: string | null
+          created_at?: string
+          filters?: Json
+          id?: string
+          label: string
+          user_id: string
+        }
+        Update: {
+          condition_id?: string | null
+          created_at?: string
+          filters?: Json
+          id?: string
+          label?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "researcher_favorites_condition_id_fkey"
+            columns: ["condition_id"]
+            isOneToOne: false
+            referencedRelation: "conditions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       researchers: {
         Row: {
           agreed_terms_at: string
