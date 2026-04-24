@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { z } from "zod";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,8 +10,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, ShieldCheck, Search } from "lucide-react";
+import { Loader2, ShieldCheck, Search, Check, ChevronsUpDown, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 const npiSchema = z.string().regex(/^\d{10}$/, "NPI must be 10 digits");
 const emailSchema = z.string().email().max(255);
@@ -25,6 +29,9 @@ type LookupResult = {
   taxonomies?: Taxonomy[];
   primary_taxonomy?: Taxonomy | null;
 };
+type Condition = { id: string; name: string };
+
+const STATUSES_ACTIVE = new Set(["pending", "in_review", "approved"]);
 
 const SpecialistApply = () => {
   const { user, loading } = useAuth();
@@ -39,9 +46,58 @@ const SpecialistApply = () => {
   const [looking, setLooking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
+  const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
+
+  const [appLoading, setAppLoading] = useState(true);
+  const [existingApp, setExistingApp] = useState<any>(null);
+  const [forceReapply, setForceReapply] = useState(false);
+
   useEffect(() => {
     if (!loading && !user) navigate("/auth?next=/specialists/apply");
   }, [user, loading, navigate]);
+
+  // Load existing application for this user
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    (async () => {
+      setAppLoading(true);
+      const { data } = await supabase
+        .from("specialist_applications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (!cancelled) {
+        setExistingApp(data ?? null);
+        setAppLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Load conditions list for multi-select
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("conditions")
+        .select("id, name")
+        .eq("approved", true)
+        .order("name");
+      if (!cancelled && data) setConditions(data as Condition[]);
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  const showForm = useMemo(() => {
+    if (!existingApp) return true;
+    if (forceReapply) return true;
+    return !STATUSES_ACTIVE.has(existingApp.status);
+  }, [existingApp, forceReapply]);
 
   const lookupNpi = async () => {
     const parsed = npiSchema.safeParse(npi);
@@ -65,6 +121,10 @@ const SpecialistApply = () => {
     if (res.primary_taxonomy) setPrimaryCode(res.primary_taxonomy.code);
   };
 
+  const toggleCondition = (id: string) => {
+    setSelectedConditionIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
+  };
+
   const submit = async () => {
     if (!user) return;
     const npiOk = npiSchema.safeParse(npi);
@@ -73,9 +133,17 @@ const SpecialistApply = () => {
       toast({ title: "Missing required fields", description: "NPI lookup, institutional email, and primary specialty are required.", variant: "destructive" });
       return;
     }
+    if (selectedConditionIds.length === 0) {
+      toast({ title: "Pick at least one condition", description: "Choose the diseases/conditions you'd like to cover as a specialist.", variant: "destructive" });
+      return;
+    }
     setSubmitting(true);
     const primary = (lookup.taxonomies ?? []).find((t) => t.code === primaryCode);
     const secondary = (lookup.taxonomies ?? []).filter((t) => t.code !== primaryCode);
+    const selectedConditions = conditions
+      .filter((c) => selectedConditionIds.includes(c.id))
+      .map((c) => ({ id: c.id, name: c.name }));
+
     const insertRow = {
       user_id: user.id,
       npi,
@@ -85,7 +153,7 @@ const SpecialistApply = () => {
       primary_taxonomy: primaryCode,
       primary_taxonomy_display: primary?.desc ?? null,
       secondary_taxonomies: secondary as unknown as never,
-      nppes_payload: lookup as unknown as never,
+      nppes_payload: { ...lookup, requested_conditions: selectedConditions } as unknown as never,
       decision_notes: bio || null,
       status: "pending" as const,
     };
@@ -99,7 +167,7 @@ const SpecialistApply = () => {
     navigate("/specialists");
   };
 
-  if (loading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
+  if (loading || appLoading) return <div className="flex min-h-screen items-center justify-center"><Loader2 className="h-6 w-6 animate-spin" /></div>;
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -110,11 +178,38 @@ const SpecialistApply = () => {
             <ShieldCheck className="h-7 w-7 text-primary" />
             <h1 className="font-heading text-3xl text-foreground">Apply to be a Specialist</h1>
           </div>
-          <p className="mb-8 text-sm text-muted-foreground">
-            Verification uses NPPES (the public federal NPI registry) plus your institutional email and credentialing document.
-            A randomly assigned panel of three existing specialists reviews each application within 7 days. Approval requires 2-of-3 votes.
+          <p className="mb-6 text-sm text-muted-foreground">
+            Specialist is one of several independent roles. You can also be a patient and/or researcher — applying here doesn't change your other roles.
           </p>
 
+          {existingApp && !showForm && (
+            <Card className="mb-6">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  Your application
+                  <Badge variant={existingApp.status === "approved" ? "default" : "secondary"}>{existingApp.status}</Badge>
+                </CardTitle>
+                <CardDescription>Submitted {new Date(existingApp.created_at).toLocaleDateString()}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                {existingApp.full_name && <div><span className="text-muted-foreground">Name: </span>{existingApp.full_name}</div>}
+                {existingApp.npi && <div><span className="text-muted-foreground">NPI: </span><span className="font-mono">{existingApp.npi}</span></div>}
+                {existingApp.primary_taxonomy_display && <div><span className="text-muted-foreground">Primary specialty: </span>{existingApp.primary_taxonomy_display}</div>}
+                {existingApp.institutional_email && <div><span className="text-muted-foreground">Email: </span>{existingApp.institutional_email}</div>}
+                {existingApp.status === "needs_info" && (
+                  <Button variant="secondary" className="mt-3" onClick={() => setForceReapply(true)}>Update & resubmit</Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
+          {existingApp && showForm && existingApp.status && !STATUSES_ACTIVE.has(existingApp.status) && (
+            <p className="mb-4 rounded-md border border-border bg-secondary/40 p-3 text-xs text-muted-foreground">
+              Previous application status: <Badge variant="outline">{existingApp.status}</Badge>. You may submit a new application below.
+            </p>
+          )}
+
+          {showForm && (
           <div className="space-y-6 rounded-lg border border-border bg-card p-6">
             <div className="space-y-2">
               <Label htmlFor="npi">National Provider Identifier (NPI)</Label>
@@ -148,6 +243,54 @@ const SpecialistApply = () => {
             {lookup && !lookup.found && <p className="text-sm text-destructive">No NPI record found.</p>}
 
             <div className="space-y-2">
+              <Label>Conditions you want to specialize in</Label>
+              <Popover open={conditionPickerOpen} onOpenChange={setConditionPickerOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" role="combobox" className="w-full justify-between font-normal">
+                    <span className="truncate text-left">
+                      {selectedConditionIds.length === 0
+                        ? "Select one or more conditions…"
+                        : `${selectedConditionIds.length} selected`}
+                    </span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                  <Command>
+                    <CommandInput placeholder="Search conditions…" />
+                    <CommandList>
+                      <CommandEmpty>No conditions found.</CommandEmpty>
+                      <CommandGroup>
+                        {conditions.map((c) => {
+                          const checked = selectedConditionIds.includes(c.id);
+                          return (
+                            <CommandItem key={c.id} value={c.name} onSelect={() => toggleCondition(c.id)}>
+                              <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                              {c.name}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+              {selectedConditionIds.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {conditions.filter((c) => selectedConditionIds.includes(c.id)).map((c) => (
+                    <Badge key={c.id} variant="secondary" className="gap-1">
+                      {c.name}
+                      <button type="button" onClick={() => toggleCondition(c.id)} className="hover:text-destructive">
+                        <X className="h-3 w-3" />
+                      </button>
+                    </Badge>
+                  ))}
+                </div>
+              )}
+              <p className="text-xs text-muted-foreground">Pick the diseases/conditions you'd like authority to curate. The panel will weigh these against your specialty.</p>
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="email">Institutional email</Label>
               <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@hospital.org" />
               <p className="text-xs text-muted-foreground">Personal email domains (gmail, yahoo, etc.) will be flagged for additional review.</p>
@@ -167,6 +310,7 @@ const SpecialistApply = () => {
               {submitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Submit application
             </Button>
           </div>
+          )}
         </div>
       </section>
       <Footer />
