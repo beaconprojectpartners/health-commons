@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { Loader2, Sparkles } from "lucide-react";
 
 type Status = "approved_new" | "mapped_alias" | "rejected" | "needs_info" | "deferred_to_moderator";
 
@@ -20,6 +20,8 @@ const ModerationQueue = () => {
   const qc = useQueryClient();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
+  const [suggesting, setSuggesting] = useState(false);
+  const [suggestions, setSuggestions] = useState<Array<{ system: string; code: string; display: string; confidence: number; rationale: string }> | null>(null);
 
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin", user?.id],
@@ -50,6 +52,25 @@ const ModerationQueue = () => {
   });
 
   const selected = items?.find((i) => i.id === selectedId) ?? items?.[0];
+
+  // Reset suggestions when selection changes
+  useEffect(() => { setSuggestions(null); }, [selected?.id]);
+
+  const suggestCodes = useCallback(async () => {
+    if (!selected) return;
+    const pe = (selected as unknown as { pending_code_entries: { redacted_text: string; code_system_hint: string | null } }).pending_code_entries;
+    setSuggesting(true);
+    setSuggestions(null);
+    const { data, error } = await supabase.functions.invoke("claude-code-suggest", {
+      body: { redacted_text: pe.redacted_text, code_system_hint: pe.code_system_hint },
+    });
+    setSuggesting(false);
+    if (error) {
+      toast({ title: "Suggestion failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setSuggestions((data as { suggestions?: Array<{ system: string; code: string; display: string; confidence: number; rationale: string }> })?.suggestions ?? []);
+  }, [selected, toast]);
 
   const decide = useCallback(async (status: Status, extras?: { rejection_reason?: "duplicate" | "not_medical" | "phi_leaked" | "nonsense" | "out_of_scope" | "other" }) => {
     if (!selected) return;
@@ -158,7 +179,34 @@ const ModerationQueue = () => {
                     <Button variant="outline" onClick={() => decide("needs_info")}>Needs info (I)</Button>
                     <Button variant="outline" onClick={() => decide("deferred_to_moderator")}>Defer to moderator (D)</Button>
                     <Button variant="ghost" onClick={reportPhi}>Report PHI (P)</Button>
+                    <Button variant="secondary" onClick={suggestCodes} disabled={suggesting}>
+                      {suggesting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Sparkles className="mr-1.5 h-3.5 w-3.5" />}
+                      Suggest codes (Claude)
+                    </Button>
                   </div>
+                  {suggestions && (
+                    <div className="rounded-md border border-border bg-secondary/30 p-3">
+                      <div className="mb-2 text-xs font-medium text-muted-foreground">Claude suggestions</div>
+                      {suggestions.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No confident matches.</p>
+                      ) : (
+                        <ul className="space-y-2">
+                          {suggestions.map((s, i) => (
+                            <li key={i} className="text-sm">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline" className="text-[10px]">{s.system}</Badge>
+                                <span className="font-mono">{s.code}</span>
+                                <span className="text-foreground">{s.display}</span>
+                                <span className="ml-auto text-xs text-muted-foreground">{Math.round((s.confidence ?? 0) * 100)}%</span>
+                              </div>
+                              {s.rationale && <p className="mt-0.5 text-xs text-muted-foreground">{s.rationale}</p>}
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <p className="mt-2 text-[10px] text-muted-foreground">AI suggestion — verify before approving.</p>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground">Select an item from the queue.</p>
