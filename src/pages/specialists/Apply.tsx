@@ -134,6 +134,42 @@ const SpecialistApply = () => {
     setSelectedConditionIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
+  const createCondition = async () => {
+    const name = conditionSearch.trim();
+    if (!name) return;
+    if (name.length > 120) {
+      toast({ title: "Name too long", description: "Keep it under 120 characters.", variant: "destructive" });
+      return;
+    }
+    let icd: string | null = null;
+    if (newConditionIcd.trim()) {
+      const ok = icd10Schema.safeParse(newConditionIcd.trim().toUpperCase());
+      if (!ok.success) {
+        toast({ title: "Invalid ICD-10-CM", description: ok.error.issues[0].message, variant: "destructive" });
+        return;
+      }
+      icd = newConditionIcd.trim().toUpperCase();
+    }
+    setCreatingCondition(true);
+    const slug = `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`;
+    const { data, error } = await supabase
+      .from("conditions")
+      .insert({ name, slug, icd10_code: icd, created_by: user?.id ?? null, approved: false })
+      .select("id, name")
+      .single();
+    setCreatingCondition(false);
+    if (error || !data) {
+      toast({ title: "Could not add condition", description: error?.message ?? "Unknown error", variant: "destructive" });
+      return;
+    }
+    setConditions((prev) => [...prev, data as Condition].sort((a, b) => a.name.localeCompare(b.name)));
+    setSelectedConditionIds((prev) => [...prev, data.id]);
+    setAddingCondition(false);
+    setNewConditionIcd("");
+    setConditionSearch("");
+    toast({ title: "Condition added", description: "Pending admin approval; selected for your application." });
+  };
+
   const submit = async () => {
     if (!user) return;
     const npiOk = npiSchema.safeParse(npi);
