@@ -62,6 +62,326 @@ const SignInGate = ({ children, label }: { children: React.ReactNode; label: str
   return <>{children}</>;
 };
 
+// Hook: fetch researcher record for current user
+const useResearcher = () => {
+  const { user } = useAuth();
+  return useQuery({
+    queryKey: ["researcher-profile", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("researchers")
+        .select("*")
+        .eq("user_id", user!.id)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+// Registration form shown when signed in but not yet a researcher
+const ResearcherRegistrationForm = ({ onRegistered }: { onRegistered: () => void }) => {
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [name, setName] = useState("");
+  const [institution, setInstitution] = useState("");
+  const [orcid, setOrcid] = useState("");
+  const [researchFocus, setResearchFocus] = useState("");
+  const [intendedUse, setIntendedUse] = useState("");
+  const [agreed, setAgreed] = useState(false);
+
+  const register = useMutation({
+    mutationFn: async () => {
+      const { error } = await supabase.from("researchers").insert({
+        user_id: user!.id,
+        name: name.trim(),
+        institution: institution.trim() || null,
+        orcid: orcid.trim() || null,
+        research_focus: researchFocus.trim() || null,
+        intended_use: intendedUse.trim() || null,
+      });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["researcher-profile"] });
+      toast({ title: "Welcome, researcher!", description: "Your researcher profile is active." });
+      onRegistered();
+    },
+    onError: (err: any) => {
+      toast({ title: "Could not register", description: err.message, variant: "destructive" });
+    },
+  });
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+      <div className="mb-5 flex items-start gap-3">
+        <UserCheck className="mt-0.5 h-6 w-6 text-blue-500" />
+        <div>
+          <h3 className="font-heading text-lg text-foreground">Register as a Researcher</h3>
+          <p className="text-sm text-muted-foreground">
+            Sign the Data Use Agreement and create your researcher profile to access dataset search, exports, and (optionally) the API.
+          </p>
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <div>
+          <Label>Full name *</Label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Dr. Jane Doe" />
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <div>
+            <Label>Institution</Label>
+            <Input value={institution} onChange={(e) => setInstitution(e.target.value)} placeholder="University, hospital, lab…" />
+          </div>
+          <div>
+            <Label>ORCID iD</Label>
+            <Input value={orcid} onChange={(e) => setOrcid(e.target.value)} placeholder="0000-0000-0000-0000" />
+          </div>
+        </div>
+        <div>
+          <Label>Research focus</Label>
+          <Input value={researchFocus} onChange={(e) => setResearchFocus(e.target.value)} placeholder="e.g. autoimmune disease epidemiology" />
+        </div>
+        <div>
+          <Label>Intended use of the data</Label>
+          <Textarea
+            value={intendedUse}
+            onChange={(e) => setIntendedUse(e.target.value)}
+            placeholder="Briefly describe the question you're investigating and how you'll use this dataset."
+            rows={3}
+          />
+        </div>
+
+        <div className="rounded-lg border border-border bg-secondary/30 p-4">
+          <div className="flex items-start gap-2">
+            <Checkbox id="dua" checked={agreed} onCheckedChange={(v) => setAgreed(v === true)} />
+            <label htmlFor="dua" className="text-xs leading-relaxed text-muted-foreground">
+              I agree to the Data Use Agreement: I will not attempt re-identification, will not use the data for commercial resale,
+              will follow IRB/ethical guidelines where applicable, and will cite DxCommons in publications.
+            </label>
+          </div>
+        </div>
+
+        <Button
+          onClick={() => register.mutate()}
+          disabled={!name.trim() || !agreed || register.isPending}
+          className="bg-blue-500 text-white hover:bg-blue-500/90"
+        >
+          {register.isPending ? (
+            <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Registering…</>
+          ) : (
+            "Complete registration"
+          )}
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Researcher dashboard: shown to registered researchers
+const ResearcherDashboard = ({ researcher }: { researcher: any }) => {
+  const { user } = useAuth();
+  const { isActive, isLoading: subLoading, openCheckout, openPortal } = useSubscription();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [showKey, setShowKey] = useState(false);
+
+  const { data: favorites } = useQuery({
+    queryKey: ["researcher-favorites", user?.id],
+    enabled: !!user,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("researcher_favorites")
+        .select("id, label, condition_id, filters, created_at, conditions(name, slug)")
+        .eq("user_id", user!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: downloads } = useQuery({
+    queryKey: ["researcher-downloads", researcher.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from("download_log")
+        .select("id, condition_filter, export_format, row_count, exported_at")
+        .eq("researcher_id", researcher.id)
+        .order("exported_at", { ascending: false })
+        .limit(10);
+      return data ?? [];
+    },
+  });
+
+  const removeFavorite = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("researcher_favorites").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["researcher-favorites"] });
+      toast({ title: "Removed from favorites" });
+    },
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Profile summary */}
+      <div className="rounded-xl border border-blue-500/30 bg-blue-500/5 p-6 shadow-card">
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div>
+            <div className="mb-1 inline-flex items-center gap-2 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600">
+              <UserCheck className="h-3.5 w-3.5" /> Registered Researcher
+            </div>
+            <h3 className="mt-1 font-heading text-xl text-foreground">{researcher.name}</h3>
+            <div className="mt-1 space-y-0.5 text-sm text-muted-foreground">
+              {researcher.institution && <div>{researcher.institution}</div>}
+              {researcher.orcid && <div>ORCID: <span className="font-mono">{researcher.orcid}</span></div>}
+              {researcher.research_focus && <div>Focus: {researcher.research_focus}</div>}
+              <div>DUA accepted {new Date(researcher.agreed_terms_at).toLocaleDateString()}</div>
+            </div>
+          </div>
+          <Link to="/profile?role=researcher">
+            <Button variant="outline" size="sm">Edit profile</Button>
+          </Link>
+        </div>
+      </div>
+
+      {/* API access */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <div className="mb-4 flex items-center gap-2">
+          <Key className="h-5 w-5 text-primary" />
+          <h3 className="font-heading text-lg text-foreground">API Access</h3>
+        </div>
+        {subLoading ? (
+          <p className="text-sm text-muted-foreground">Loading subscription status…</p>
+        ) : isActive ? (
+          <div>
+            <Badge className="mb-3">Active subscription</Badge>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Use your API key in the <code className="rounded bg-secondary px-1 py-0.5 text-xs">x-api-key</code> header.
+            </p>
+            {researcher.api_key && (
+              <div className="mb-4 rounded-md border border-border bg-secondary/30 p-3 font-mono text-xs break-all">
+                {showKey ? researcher.api_key : "•".repeat(36)}
+                <Button variant="link" size="sm" className="ml-2 h-auto p-0 text-xs" onClick={() => setShowKey(!showKey)}>
+                  {showKey ? "Hide" : "Reveal"}
+                </Button>
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={openPortal}>
+              <CreditCard className="mr-1.5 h-3.5 w-3.5" /> Manage billing
+            </Button>
+          </div>
+        ) : (
+          <div>
+            <p className="mb-3 text-sm text-muted-foreground">
+              Downloads and search are free. Upgrade to <strong>$5/month</strong> for unlimited programmatic access.
+            </p>
+            <Button onClick={openCheckout} className="gap-2">
+              <CreditCard className="h-4 w-4" /> Subscribe for API Access
+            </Button>
+          </div>
+        )}
+      </div>
+
+      {/* Favorite searches */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <div className="mb-4 flex items-center gap-2">
+          <Star className="h-5 w-5 text-amber-500" />
+          <h3 className="font-heading text-lg text-foreground">Favorite searches</h3>
+        </div>
+        {favorites && favorites.length > 0 ? (
+          <ul className="divide-y divide-border">
+            {favorites.map((f: any) => (
+              <li key={f.id} className="flex items-center justify-between gap-3 py-2.5">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-foreground truncate">{f.label}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {f.conditions?.name ?? "All conditions"} · saved {new Date(f.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => removeFavorite.mutate(f.id)}
+                  className="text-muted-foreground hover:text-destructive"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            No saved searches yet. Use the dataset discovery tool below to explore, then save useful queries here.
+          </p>
+        )}
+      </div>
+
+      {/* Recent downloads */}
+      <div className="rounded-xl border border-border bg-card p-6 shadow-card">
+        <div className="mb-4 flex items-center gap-2">
+          <Download className="h-5 w-5 text-primary" />
+          <h3 className="font-heading text-lg text-foreground">Recent downloads</h3>
+        </div>
+        {downloads && downloads.length > 0 ? (
+          <ul className="divide-y divide-border text-sm">
+            {downloads.map((d: any) => (
+              <li key={d.id} className="flex items-center justify-between gap-3 py-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-foreground truncate">{d.condition_filter ?? "All conditions"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {d.export_format?.toUpperCase() ?? "—"} · {d.row_count ?? 0} rows · {new Date(d.exported_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-sm text-muted-foreground">No downloads yet.</p>
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Combined gate + dashboard for the registration section
+const ResearcherRegistrationSection = () => {
+  const { user, loading: authLoading } = useAuth();
+  const { data: researcher, isLoading } = useResearcher();
+
+  if (authLoading) return null;
+
+  if (!user) {
+    return (
+      <div className="rounded-xl border border-border bg-card p-8 text-center shadow-card">
+        <Lock className="mx-auto mb-3 h-8 w-8 text-muted-foreground" />
+        <h3 className="mb-2 font-heading text-lg text-foreground">Sign in required</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          Create a free account to register as a researcher.
+        </p>
+        <Link to="/auth?role=researcher">
+          <Button>Sign In or Register</Button>
+        </Link>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return <div className="text-center text-sm text-muted-foreground">Loading…</div>;
+  }
+
+  if (!researcher) {
+    return <ResearcherRegistrationForm onRegistered={() => { /* query refetch handles UI swap */ }} />;
+  }
+
+  return <ResearcherDashboard researcher={researcher} />;
+};
+
 const ApiAccessCard = () => {
   const { isActive, isLoading, openCheckout, openPortal, subscription } = useSubscription();
 
