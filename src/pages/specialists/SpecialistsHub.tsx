@@ -54,7 +54,10 @@ const SpecialistsHub = () => {
         <div className="container mx-auto max-w-5xl px-4">
           <div className="mb-8 flex items-start justify-between">
             <div>
-              <h1 className="font-heading text-3xl text-foreground">Specialist Hub</h1>
+              <h1 className="font-heading text-3xl text-foreground flex items-center gap-2">
+                <FlaskConical className="h-7 w-7 text-fuchsia-500" />
+                Specialist Hub
+              </h1>
               <p className="mt-1 text-sm text-muted-foreground">Earned tiers, scoped editing, peer-led governance.</p>
             </div>
             <Link to="/governance"><Button variant="outline" size="sm">Governance</Button></Link>
@@ -63,7 +66,7 @@ const SpecialistsHub = () => {
           {!isSpecialist && (
             <Card className="mb-6">
               <CardHeader>
-                <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-primary" />Become a specialist</CardTitle>
+                <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-fuchsia-500" />Become a specialist</CardTitle>
                 <CardDescription>Verification via NPI + institutional email + a 3-peer panel.</CardDescription>
               </CardHeader>
               <CardContent className="flex items-center justify-between">
@@ -74,7 +77,7 @@ const SpecialistsHub = () => {
                 ) : (
                   <p className="text-sm text-muted-foreground">No application on file.</p>
                 )}
-                <Link to="/specialists/apply"><Button>{application ? "View / re-apply" : "Apply"}</Button></Link>
+                <Link to="/specialists/apply"><Button className="bg-fuchsia-500 text-white hover:bg-fuchsia-500/90">{application ? "View / re-apply" : "Apply"}</Button></Link>
               </CardContent>
             </Card>
           )}
@@ -126,8 +129,8 @@ const SpecialistsHub = () => {
 };
 
 const ToolCard = ({ to, icon: Icon, title, desc }: { to: string; icon: React.ComponentType<{ className?: string }>; title: string; desc: string }) => (
-  <Link to={to} className="group rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary">
-    <Icon className="mb-3 h-5 w-5 text-primary" />
+  <Link to={to} className="group rounded-lg border border-border bg-card p-5 transition-colors hover:border-fuchsia-500">
+    <Icon className="mb-3 h-5 w-5 text-fuchsia-500" />
     <div className="font-medium text-foreground">{title}</div>
     <p className="mt-1 text-xs text-muted-foreground">{desc}</p>
   </Link>
