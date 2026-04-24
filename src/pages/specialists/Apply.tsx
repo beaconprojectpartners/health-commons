@@ -51,13 +51,13 @@ const SpecialistApply = () => {
   const [looking, setLooking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  const [conditions, setConditions] = useState<Condition[]>([]);
+  const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
   const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
   const [conditionSearch, setConditionSearch] = useState("");
-  const [addingCondition, setAddingCondition] = useState(false);
-  const [newConditionIcd, setNewConditionIcd] = useState("");
-  const [creatingCondition, setCreatingCondition] = useState(false);
+  const [icdResults, setIcdResults] = useState<{ code: string; name: string }[]>([]);
+  const [icdLoading, setIcdLoading] = useState(false);
+  const [addingIcdCode, setAddingIcdCode] = useState<string | null>(null);
 
   const [appLoading, setAppLoading] = useState(true);
   const [existingApp, setExistingApp] = useState<any>(null);
@@ -95,13 +95,35 @@ const SpecialistApply = () => {
     (async () => {
       const { data } = await supabase
         .from("conditions")
-        .select("id, name")
-        .eq("approved", true)
+        .select("id, name, icd10_code")
         .order("name");
-      if (!cancelled && data) setConditions(data as Condition[]);
+      if (!cancelled && data) setConditions(data as ConditionRow[]);
     })();
     return () => { cancelled = true; };
   }, []);
+
+  // Live ICD-10-CM search via NIH Clinical Tables (no API key)
+  useEffect(() => {
+    const q = conditionSearch.trim();
+    if (q.length < 2) { setIcdResults([]); return; }
+    const ctrl = new AbortController();
+    const t = setTimeout(async () => {
+      setIcdLoading(true);
+      try {
+        const url = `https://clinicaltables.nlm.nih.gov/api/icd10cm/v3/search?sf=code,name&terms=${encodeURIComponent(q)}&maxList=25`;
+        const res = await fetch(url, { signal: ctrl.signal });
+        const json = await res.json();
+        // [total, [codes], null, [[code,name], ...]]
+        const rows: [string, string][] = json?.[3] ?? [];
+        setIcdResults(rows.map(([code, name]) => ({ code, name })));
+      } catch (e: any) {
+        if (e?.name !== "AbortError") setIcdResults([]);
+      } finally {
+        setIcdLoading(false);
+      }
+    }, 200);
+    return () => { ctrl.abort(); clearTimeout(t); };
+  }, [conditionSearch]);
 
   const showForm = useMemo(() => {
     if (!existingApp) return true;
@@ -154,40 +176,36 @@ const SpecialistApply = () => {
     setSelectedConditionIds((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]);
   };
 
-  const createCondition = async () => {
-    const name = conditionSearch.trim();
-    if (!name) return;
-    if (name.length > 120) {
-      toast({ title: "Name too long", description: "Keep it under 120 characters.", variant: "destructive" });
+  const pickIcd = async (icd: { code: string; name: string }) => {
+    // If we already have a condition with this ICD-10 code, just toggle it
+    const existing = conditions.find(
+      (c) => (c.icd10_code ?? "").toUpperCase() === icd.code.toUpperCase(),
+    );
+    if (existing) {
+      toggleCondition(existing.id);
       return;
     }
-    let icd: string | null = null;
-    if (newConditionIcd.trim()) {
-      const ok = icd10Schema.safeParse(newConditionIcd.trim().toUpperCase());
-      if (!ok.success) {
-        toast({ title: "Invalid ICD-10-CM", description: ok.error.issues[0].message, variant: "destructive" });
-        return;
-      }
-      icd = newConditionIcd.trim().toUpperCase();
-    }
-    setCreatingCondition(true);
-    const slug = `${slugify(name)}-${Math.random().toString(36).slice(2, 6)}`;
+    setAddingIcdCode(icd.code);
+    const slug = `${slugify(icd.name)}-${icd.code.replace(/\./g, "").toLowerCase()}`;
     const { data, error } = await supabase
       .from("conditions")
-      .insert({ name, slug, icd10_code: icd, created_by: user?.id ?? null, approved: false })
-      .select("id, name")
+      .insert({
+        name: icd.name,
+        slug,
+        icd10_code: icd.code.toUpperCase(),
+        created_by: user?.id ?? null,
+        approved: false,
+      })
+      .select("id, name, icd10_code")
       .single();
-    setCreatingCondition(false);
+    setAddingIcdCode(null);
     if (error || !data) {
       toast({ title: "Could not add condition", description: error?.message ?? "Unknown error", variant: "destructive" });
       return;
     }
-    setConditions((prev) => [...prev, data as Condition].sort((a, b) => a.name.localeCompare(b.name)));
+    setConditions((prev) => [...prev, data as ConditionRow].sort((a, b) => a.name.localeCompare(b.name)));
     setSelectedConditionIds((prev) => [...prev, data.id]);
-    setAddingCondition(false);
-    setNewConditionIcd("");
-    setConditionSearch("");
-    toast({ title: "Condition added", description: "Pending admin approval; selected for your application." });
+    toast({ title: "Condition added", description: `${icd.code} · ${icd.name}` });
   };
 
   const submit = async () => {
@@ -353,68 +371,44 @@ const SpecialistApply = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                  <Command>
+                  <Command shouldFilter={false}>
                     <CommandInput
-                      placeholder="Search or type a new condition…"
+                      placeholder="Search ICD-10-CM (e.g. diabetes, E11.9)…"
                       value={conditionSearch}
-                      onValueChange={(v) => { setConditionSearch(v); setAddingCondition(false); }}
+                      onValueChange={setConditionSearch}
                     />
                     <CommandList>
                       <CommandEmpty>
-                        {conditionSearch.trim() ? (
-                          addingCondition ? (
-                            <div className="space-y-2 p-3 text-left">
-                              <div className="text-sm">
-                                Add <span className="font-medium text-foreground">"{conditionSearch.trim()}"</span> as a new condition.
-                              </div>
-                              <div className="space-y-1">
-                                <Label htmlFor="new-icd" className="text-xs">ICD-10-CM code (optional)</Label>
-                                <Input
-                                  id="new-icd"
-                                  value={newConditionIcd}
-                                  onChange={(e) => setNewConditionIcd(e.target.value)}
-                                  placeholder="e.g. E11.9"
-                                  className="h-8"
-                                />
-                                <a
-                                  href={`https://www.icd10data.com/search?s=${encodeURIComponent(conditionSearch.trim())}`}
-                                  target="_blank"
-                                  rel="noreferrer"
-                                  className="text-xs underline text-muted-foreground"
-                                >
-                                  Look up ICD-10-CM ↗
-                                </a>
-                              </div>
-                              <div className="flex gap-2 pt-1">
-                                <Button size="sm" onClick={createCondition} disabled={creatingCondition}>
-                                  {creatingCondition && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Add condition
-                                </Button>
-                                <Button size="sm" variant="ghost" onClick={() => setAddingCondition(false)}>Cancel</Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="p-3 text-left text-sm">
-                              <div className="mb-2 text-muted-foreground">No matches.</div>
-                              <Button size="sm" variant="secondary" onClick={() => setAddingCondition(true)}>
-                                + Add "{conditionSearch.trim()}"
-                              </Button>
-                            </div>
-                          )
-                        ) : (
-                          "Type to search or add a condition."
-                        )}
+                        <div className="p-3 text-left text-sm text-muted-foreground">
+                          {conditionSearch.trim().length < 2
+                            ? "Type at least 2 characters to search ICD-10-CM."
+                            : icdLoading ? "Searching ICD-10-CM…" : "No ICD-10-CM matches."}
+                        </div>
                       </CommandEmpty>
-                      <CommandGroup>
-                        {conditions.map((c) => {
-                          const checked = selectedConditionIds.includes(c.id);
-                          return (
-                            <CommandItem key={c.id} value={c.name} onSelect={() => toggleCondition(c.id)}>
-                              <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
-                              {c.name}
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
+                      {icdResults.length > 0 && (
+                        <CommandGroup heading="ICD-10-CM">
+                          {icdResults.map((r) => {
+                            const existing = conditions.find(
+                              (c) => (c.icd10_code ?? "").toUpperCase() === r.code.toUpperCase(),
+                            );
+                            const checked = existing ? selectedConditionIds.includes(existing.id) : false;
+                            const busy = addingIcdCode === r.code;
+                            return (
+                              <CommandItem
+                                key={r.code}
+                                value={`${r.code} ${r.name}`}
+                                onSelect={() => pickIcd(r)}
+                                disabled={busy}
+                              >
+                                <Check className={cn("mr-2 h-4 w-4", checked ? "opacity-100" : "opacity-0")} />
+                                <span className="font-mono text-xs text-muted-foreground mr-2">{r.code}</span>
+                                <span className="truncate">{r.name}</span>
+                                {busy && <Loader2 className="ml-auto h-3 w-3 animate-spin" />}
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      )}
                     </CommandList>
                   </Command>
                 </PopoverContent>
