@@ -3,9 +3,18 @@ import Footer from "@/components/Footer";
 import DatasetSearch from "@/components/DatasetSearch";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
-import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock, CreditCard, Zap } from "lucide-react";
+import { Database, Download, Filter, Key, AlertTriangle, FileJson, Shield, Lock, CreditCard, Zap, Star, Trash2, UserCheck, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useSubscription } from "@/hooks/useSubscription";
+import { useState } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 const features = [
   { icon: Filter, title: "Advanced Filters", desc: "Filter by condition, symptom, treatment, lab result, region, and more." },
