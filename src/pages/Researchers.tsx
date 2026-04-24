@@ -423,7 +423,12 @@ const ApiAccessCard = () => {
   );
 };
 
-const Researchers = () => (
+const Researchers = () => {
+  const { user } = useAuth();
+  const { data: researcher } = useResearcher();
+  const ctaHref = !user ? "/auth?role=researcher" : "#researcher-registration";
+  const ctaLabel = !user ? "Create Free Account" : researcher ? "Open my researcher dashboard" : "Register as Researcher";
+  return (
   <div className="flex min-h-screen flex-col">
     <Navbar />
     <main className="flex-1">
@@ -436,9 +441,9 @@ const Researchers = () => (
             Access crowdsourced, patient-reported data for your research. Create a free account
             to filter, explore, and export the full dataset.
           </p>
-          <Link to="/auth?role=researcher">
-            <Button size="lg" className="px-8">Create Free Account</Button>
-          </Link>
+          <a href={ctaHref}>
+            <Button size="lg" className="px-8">{ctaLabel}</Button>
+          </a>
         </div>
       </div>
     </section>
@@ -534,20 +539,18 @@ const Researchers = () => (
       </div>
     </section>
 
-    {/* API Access & Subscription — gated */}
-    <section className="border-t border-border py-16">
+    {/* Researcher registration / dashboard */}
+    <section id="researcher-registration" className="border-t border-border py-16 bg-secondary/30 scroll-mt-20">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-3xl">
           <div className="mb-6 text-center">
-            <Zap className="mx-auto mb-3 h-8 w-8 text-primary" />
-            <h2 className="mb-2 font-heading text-2xl text-foreground">API Access</h2>
+            <UserCheck className="mx-auto mb-3 h-8 w-8 text-blue-500" />
+            <h2 className="mb-2 font-heading text-2xl text-foreground">Researcher Account</h2>
             <p className="text-sm text-muted-foreground">
-              Programmatic access to scrubbed, anonymized datasets. Downloads are free — API access requires a $5/month subscription.
+              Register as a researcher to save favorite searches, track downloads, and (optionally) subscribe to API access.
             </p>
           </div>
-          <SignInGate label="API subscription management">
-            <ApiAccessCard />
-          </SignInGate>
+          <ResearcherRegistrationSection />
         </div>
       </div>
     </section>
@@ -575,5 +578,6 @@ const Researchers = () => (
     <Footer />
   </div>
 );
+};
 
 export default Researchers;
