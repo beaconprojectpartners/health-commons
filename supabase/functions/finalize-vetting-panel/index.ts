@@ -34,7 +34,7 @@ Deno.serve(async (req) => {
 
     await admin.from("vetting_panels").update({ outcome, closed_at: new Date().toISOString() }).eq("id", panel_id);
 
-    const app = panel.specialist_applications as { id: string; user_id: string; primary_taxonomy: string | null };
+    const app = panel.specialist_applications as { id: string; user_id: string; primary_taxonomy: string | null; nppes_payload: any };
     const newStatus = outcome === "approve" ? "approved" : outcome === "reject" ? "rejected" : "needs_info";
     await admin.from("specialist_applications").update({
       status: newStatus, decided_by: user.id, decided_at: new Date().toISOString(),
@@ -47,6 +47,14 @@ Deno.serve(async (req) => {
           user_id: app.user_id, scope_type: "specialty", scope_id: app.primary_taxonomy,
           tier: "contributing", granted_by: user.id, granted_reason: "panel-approved application",
         }, { onConflict: "user_id,scope_type,scope_id", ignoreDuplicates: true });
+      }
+      // Approve the conditions this specialist requested so patients/researchers can select them.
+      const requested = (app.nppes_payload?.requested_conditions ?? []) as Array<{ id?: string }>;
+      const conditionIds = Array.isArray(requested)
+        ? requested.map((c) => c?.id).filter((x): x is string => typeof x === "string")
+        : [];
+      if (conditionIds.length > 0) {
+        await admin.from("conditions").update({ approved: true }).in("id", conditionIds);
       }
     }
 
