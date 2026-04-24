@@ -62,6 +62,7 @@ const SpecialistApply = () => {
   const [appLoading, setAppLoading] = useState(true);
   const [existingApp, setExistingApp] = useState<any>(null);
   const [forceReapply, setForceReapply] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth?next=/specialists/apply");
@@ -107,6 +108,25 @@ const SpecialistApply = () => {
     if (forceReapply) return true;
     return !STATUSES_ACTIVE.has(existingApp.status);
   }, [existingApp, forceReapply]);
+
+  // Prefill form from existing application when editing/reapplying
+  useEffect(() => {
+    if (!existingApp || !showForm) return;
+    setEditingId(existingApp.id);
+    setNpi(existingApp.npi ?? "");
+    setEmail(existingApp.institutional_email ?? "");
+    setDocumentUrl(existingApp.document_url ?? "");
+    setBio(existingApp.decision_notes ?? "");
+    setPrimaryCode(existingApp.primary_taxonomy ?? "");
+    const payload = existingApp.nppes_payload ?? null;
+    if (payload && (payload.found || payload.taxonomies)) {
+      setLookup(payload as LookupResult);
+    }
+    const reqs = (payload?.requested_conditions ?? []) as { id: string }[];
+    if (Array.isArray(reqs) && reqs.length) {
+      setSelectedConditionIds(reqs.map((r) => r.id).filter(Boolean));
+    }
+  }, [existingApp, showForm]);
 
   const lookupNpi = async () => {
     const parsed = npiSchema.safeParse(npi);
@@ -202,13 +222,24 @@ const SpecialistApply = () => {
       decision_notes: bio || null,
       status: "pending" as const,
     };
-    const { data: app, error } = await supabase.from("specialist_applications").insert(insertRow).select().single();
+    let result;
+    if (editingId) {
+      const { status: _omit, user_id: _u, ...updateRow } = insertRow as any;
+      result = await supabase
+        .from("specialist_applications")
+        .update({ ...updateRow, status: "pending" })
+        .eq("id", editingId)
+        .select()
+        .single();
+    } else {
+      result = await supabase.from("specialist_applications").insert(insertRow).select().single();
+    }
     setSubmitting(false);
-    if (error || !app) {
-      toast({ title: "Submission failed", description: error?.message ?? "Unknown error", variant: "destructive" });
+    if (result.error || !result.data) {
+      toast({ title: "Submission failed", description: result.error?.message ?? "Unknown error", variant: "destructive" });
       return;
     }
-    toast({ title: "Application submitted", description: "A peer panel will review within 7 days." });
+    toast({ title: editingId ? "Application updated" : "Application submitted", description: "A peer panel will review within 7 days." });
     navigate("/specialists");
   };
 
