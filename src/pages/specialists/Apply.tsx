@@ -323,9 +323,56 @@ const SpecialistApply = () => {
                 </PopoverTrigger>
                 <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                   <Command>
-                    <CommandInput placeholder="Search conditions…" />
+                    <CommandInput
+                      placeholder="Search or type a new condition…"
+                      value={conditionSearch}
+                      onValueChange={(v) => { setConditionSearch(v); setAddingCondition(false); }}
+                    />
                     <CommandList>
-                      <CommandEmpty>No conditions found.</CommandEmpty>
+                      <CommandEmpty>
+                        {conditionSearch.trim() ? (
+                          addingCondition ? (
+                            <div className="space-y-2 p-3 text-left">
+                              <div className="text-sm">
+                                Add <span className="font-medium text-foreground">"{conditionSearch.trim()}"</span> as a new condition.
+                              </div>
+                              <div className="space-y-1">
+                                <Label htmlFor="new-icd" className="text-xs">ICD-10-CM code (optional)</Label>
+                                <Input
+                                  id="new-icd"
+                                  value={newConditionIcd}
+                                  onChange={(e) => setNewConditionIcd(e.target.value)}
+                                  placeholder="e.g. E11.9"
+                                  className="h-8"
+                                />
+                                <a
+                                  href={`https://www.icd10data.com/search?s=${encodeURIComponent(conditionSearch.trim())}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-xs underline text-muted-foreground"
+                                >
+                                  Look up ICD-10-CM ↗
+                                </a>
+                              </div>
+                              <div className="flex gap-2 pt-1">
+                                <Button size="sm" onClick={createCondition} disabled={creatingCondition}>
+                                  {creatingCondition && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}Add condition
+                                </Button>
+                                <Button size="sm" variant="ghost" onClick={() => setAddingCondition(false)}>Cancel</Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="p-3 text-left text-sm">
+                              <div className="mb-2 text-muted-foreground">No matches.</div>
+                              <Button size="sm" variant="secondary" onClick={() => setAddingCondition(true)}>
+                                + Add "{conditionSearch.trim()}"
+                              </Button>
+                            </div>
+                          )
+                        ) : (
+                          "Type to search or add a condition."
+                        )}
+                      </CommandEmpty>
                       <CommandGroup>
                         {conditions.map((c) => {
                           const checked = selectedConditionIds.includes(c.id);
