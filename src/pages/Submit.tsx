@@ -249,6 +249,19 @@ const Submit = () => {
       return;
     }
 
+    if (yearOfDiagnosis) {
+      const y = parseInt(yearOfDiagnosis, 10);
+      const currentYear = new Date().getFullYear();
+      if (Number.isNaN(y) || y < 1900 || y > currentYear) {
+        toast({
+          title: "Year of diagnosis is invalid",
+          description: `Please enter a year between 1900 and ${currentYear}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const universalFields = {
       diagnosis_status: diagnosisStatus,
       year_of_diagnosis: yearOfDiagnosis,
