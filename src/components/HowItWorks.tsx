@@ -27,7 +27,7 @@ const pathways = [
       "Build structured disease profiles (labs, imaging, criteria)",
       "Submit for review and community use",
     ],
-    cta: { label: "Get Started", to: "/auth" },
+    cta: { label: "Apply as Specialist", to: "/specialists/apply" },
   },
   {
     role: "Researcher",
