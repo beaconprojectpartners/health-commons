@@ -19,6 +19,10 @@ import { cn } from "@/lib/utils";
 
 const npiSchema = z.string().regex(/^\d{10}$/, "NPI must be 10 digits");
 const emailSchema = z.string().email().max(255);
+const icd10Schema = z.string().regex(/^[A-TV-Z][0-9][0-9AB](?:\.[0-9A-Z]{1,4})?$/i, "Invalid ICD-10-CM code (e.g. E11.9)");
+
+const slugify = (s: string) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 80);
 
 type Taxonomy = { code: string; desc: string; primary: boolean; state?: string; license?: string };
 type LookupResult = {
@@ -30,6 +34,7 @@ type LookupResult = {
   primary_taxonomy?: Taxonomy | null;
 };
 type Condition = { id: string; name: string };
+type ConditionRow = Condition & { icd10_code?: string | null };
 
 const STATUSES_ACTIVE = new Set(["pending", "in_review", "approved"]);
 
@@ -49,6 +54,10 @@ const SpecialistApply = () => {
   const [conditions, setConditions] = useState<Condition[]>([]);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
   const [conditionPickerOpen, setConditionPickerOpen] = useState(false);
+  const [conditionSearch, setConditionSearch] = useState("");
+  const [addingCondition, setAddingCondition] = useState(false);
+  const [newConditionIcd, setNewConditionIcd] = useState("");
+  const [creatingCondition, setCreatingCondition] = useState(false);
 
   const [appLoading, setAppLoading] = useState(true);
   const [existingApp, setExistingApp] = useState<any>(null);
