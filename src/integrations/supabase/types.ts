@@ -76,6 +76,68 @@ export type Database = {
         }
         Relationships: []
       }
+      cluster_memberships: {
+        Row: {
+          cluster_id: string
+          id: string
+          joined_at: string
+          user_id: string
+        }
+        Insert: {
+          cluster_id: string
+          id?: string
+          joined_at?: string
+          user_id: string
+        }
+        Update: {
+          cluster_id?: string
+          id?: string
+          joined_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cluster_memberships_cluster_id_fkey"
+            columns: ["cluster_id"]
+            isOneToOne: false
+            referencedRelation: "specialty_clusters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cluster_proposals: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          proposer_id: string
+          scope: string | null
+          status: string
+          supporters: string[]
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          proposer_id: string
+          scope?: string | null
+          status?: string
+          supporters?: string[]
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          proposer_id?: string
+          scope?: string | null
+          status?: string
+          supporters?: string[]
+        }
+        Relationships: []
+      }
       code_aliases: {
         Row: {
           approved_at: string | null
@@ -328,6 +390,312 @@ export type Database = {
           },
         ]
       }
+      election_candidates: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          election_id: string
+          id: string
+          nominated_by: string | null
+          statement: string | null
+          withdrawn_at: string | null
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          election_id: string
+          id?: string
+          nominated_by?: string | null
+          statement?: string | null
+          withdrawn_at?: string | null
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          election_id?: string
+          id?: string
+          nominated_by?: string | null
+          statement?: string | null
+          withdrawn_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "election_candidates_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      election_votes: {
+        Row: {
+          candidate_id: string
+          created_at: string
+          election_id: string
+          id: string
+          voter_id: string
+          weight: number
+        }
+        Insert: {
+          candidate_id: string
+          created_at?: string
+          election_id: string
+          id?: string
+          voter_id: string
+          weight?: number
+        }
+        Update: {
+          candidate_id?: string
+          created_at?: string
+          election_id?: string
+          id?: string
+          voter_id?: string
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "election_votes_election_id_fkey"
+            columns: ["election_id"]
+            isOneToOne: false
+            referencedRelation: "elections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      elections: {
+        Row: {
+          created_at: string
+          id: string
+          min_turnout_pct: number
+          nominations_open_at: string | null
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          seat_id: string | null
+          status: Database["public"]["Enums"]["election_status"]
+          voting_close_at: string | null
+          voting_open_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          min_turnout_pct?: number
+          nominations_open_at?: string | null
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          seat_id?: string | null
+          status?: Database["public"]["Enums"]["election_status"]
+          voting_close_at?: string | null
+          voting_open_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          min_turnout_pct?: number
+          nominations_open_at?: string | null
+          scope_id?: string
+          scope_type?: Database["public"]["Enums"]["governance_scope_type"]
+          seat_id?: string | null
+          status?: Database["public"]["Enums"]["election_status"]
+          voting_close_at?: string | null
+          voting_open_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "elections_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "moderator_seats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      emergency_action_log: {
+        Row: {
+          action: string
+          actor_id: string
+          created_at: string
+          id: string
+          payload: Json
+          reason: string
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          reason: string
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          created_at?: string
+          id?: string
+          payload?: Json
+          reason?: string
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
+      governance_phase: {
+        Row: {
+          commitment: string
+          id: number
+          phase: number
+          trigger_description: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          commitment?: string
+          id?: number
+          phase?: number
+          trigger_description?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          commitment?: string
+          id?: number
+          phase?: number
+          trigger_description?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      juries: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decision_type: Database["public"]["Enums"]["jury_decision_type"]
+          id: string
+          status: Database["public"]["Enums"]["jury_status"]
+          subject_ref: string
+          subject_summary: string | null
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decision_type: Database["public"]["Enums"]["jury_decision_type"]
+          id?: string
+          status?: Database["public"]["Enums"]["jury_status"]
+          subject_ref: string
+          subject_summary?: string | null
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decision_type?: Database["public"]["Enums"]["jury_decision_type"]
+          id?: string
+          status?: Database["public"]["Enums"]["jury_status"]
+          subject_ref?: string
+          subject_summary?: string | null
+        }
+        Relationships: []
+      }
+      jury_decisions: {
+        Row: {
+          created_at: string
+          decided_by: string
+          id: string
+          jury_id: string
+          outcome: string
+          reasoning: string
+        }
+        Insert: {
+          created_at?: string
+          decided_by: string
+          id?: string
+          jury_id: string
+          outcome: string
+          reasoning: string
+        }
+        Update: {
+          created_at?: string
+          decided_by?: string
+          id?: string
+          jury_id?: string
+          outcome?: string
+          reasoning?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jury_decisions_jury_id_fkey"
+            columns: ["jury_id"]
+            isOneToOne: false
+            referencedRelation: "juries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jury_deliberations: {
+        Row: {
+          author_id: string
+          body: string
+          created_at: string
+          id: string
+          jury_id: string
+        }
+        Insert: {
+          author_id: string
+          body: string
+          created_at?: string
+          id?: string
+          jury_id: string
+        }
+        Update: {
+          author_id?: string
+          body?: string
+          created_at?: string
+          id?: string
+          jury_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jury_deliberations_jury_id_fkey"
+            columns: ["jury_id"]
+            isOneToOne: false
+            referencedRelation: "juries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jury_members: {
+        Row: {
+          id: string
+          invited_at: string
+          jury_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string
+          jury_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string
+          jury_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jury_members_jury_id_fkey"
+            columns: ["jury_id"]
+            isOneToOne: false
+            referencedRelation: "juries"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       match_reports: {
         Row: {
           created_at: string
@@ -571,6 +939,72 @@ export type Database = {
           },
         ]
       }
+      moderator_seats: {
+        Row: {
+          consecutive_terms: number
+          created_at: string
+          holder_id: string | null
+          id: string
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          seat_number: number
+          term_end: string | null
+          term_start: string | null
+        }
+        Insert: {
+          consecutive_terms?: number
+          created_at?: string
+          holder_id?: string | null
+          id?: string
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          seat_number?: number
+          term_end?: string | null
+          term_start?: string | null
+        }
+        Update: {
+          consecutive_terms?: number
+          created_at?: string
+          holder_id?: string | null
+          id?: string
+          scope_id?: string
+          scope_type?: Database["public"]["Enums"]["governance_scope_type"]
+          seat_number?: number
+          term_end?: string | null
+          term_start?: string | null
+        }
+        Relationships: []
+      }
+      npi_reverification_log: {
+        Row: {
+          checked_at: string
+          id: string
+          npi: string
+          payload: Json | null
+          status: string
+          taxonomy_drift: boolean
+          user_id: string
+        }
+        Insert: {
+          checked_at?: string
+          id?: string
+          npi: string
+          payload?: Json | null
+          status: string
+          taxonomy_drift?: boolean
+          user_id: string
+        }
+        Update: {
+          checked_at?: string
+          id?: string
+          npi?: string
+          payload?: Json | null
+          status?: string
+          taxonomy_drift?: boolean
+          user_id?: string
+        }
+        Relationships: []
+      }
       patient_profiles: {
         Row: {
           bio: string | null
@@ -788,6 +1222,79 @@ export type Database = {
           },
         ]
       }
+      recall_votes: {
+        Row: {
+          created_at: string
+          id: string
+          recall_id: string
+          vote: boolean
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          recall_id: string
+          vote: boolean
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          recall_id?: string
+          vote?: boolean
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recall_votes_recall_id_fkey"
+            columns: ["recall_id"]
+            isOneToOne: false
+            referencedRelation: "recalls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      recalls: {
+        Row: {
+          decided_at: string | null
+          id: string
+          initiated_at: string
+          initiator_id: string
+          reason: string
+          seat_id: string
+          status: Database["public"]["Enums"]["recall_status"]
+          voting_close_at: string | null
+        }
+        Insert: {
+          decided_at?: string | null
+          id?: string
+          initiated_at?: string
+          initiator_id: string
+          reason: string
+          seat_id: string
+          status?: Database["public"]["Enums"]["recall_status"]
+          voting_close_at?: string | null
+        }
+        Update: {
+          decided_at?: string | null
+          id?: string
+          initiated_at?: string
+          initiator_id?: string
+          reason?: string
+          seat_id?: string
+          status?: Database["public"]["Enums"]["recall_status"]
+          voting_close_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "recalls_seat_id_fkey"
+            columns: ["seat_id"]
+            isOneToOne: false
+            referencedRelation: "moderator_seats"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       redaction_log: {
         Row: {
           counts: Json
@@ -990,6 +1497,69 @@ export type Database = {
           },
         ]
       }
+      specialist_applications: {
+        Row: {
+          created_at: string
+          decided_at: string | null
+          decided_by: string | null
+          decision_notes: string | null
+          document_url: string | null
+          email_verification_token: string | null
+          email_verified_at: string | null
+          full_name: string | null
+          id: string
+          institutional_email: string | null
+          npi: string | null
+          nppes_payload: Json | null
+          primary_taxonomy: string | null
+          primary_taxonomy_display: string | null
+          secondary_taxonomies: Json
+          status: Database["public"]["Enums"]["specialist_application_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_url?: string | null
+          email_verification_token?: string | null
+          email_verified_at?: string | null
+          full_name?: string | null
+          id?: string
+          institutional_email?: string | null
+          npi?: string | null
+          nppes_payload?: Json | null
+          primary_taxonomy?: string | null
+          primary_taxonomy_display?: string | null
+          secondary_taxonomies?: Json
+          status?: Database["public"]["Enums"]["specialist_application_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          decided_at?: string | null
+          decided_by?: string | null
+          decision_notes?: string | null
+          document_url?: string | null
+          email_verification_token?: string | null
+          email_verified_at?: string | null
+          full_name?: string | null
+          id?: string
+          institutional_email?: string | null
+          npi?: string | null
+          nppes_payload?: Json | null
+          primary_taxonomy?: string | null
+          primary_taxonomy_display?: string | null
+          secondary_taxonomies?: Json
+          status?: Database["public"]["Enums"]["specialist_application_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       specialist_scopes: {
         Row: {
           granted_at: string
@@ -1011,6 +1581,75 @@ export type Database = {
           id?: string
           specialty?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      specialist_tiers: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          granted_reason: string | null
+          id: string
+          revoked_at: string | null
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          tier: Database["public"]["Enums"]["specialist_tier"]
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          granted_reason?: string | null
+          id?: string
+          revoked_at?: string | null
+          scope_id: string
+          scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          tier?: Database["public"]["Enums"]["specialist_tier"]
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          granted_reason?: string | null
+          id?: string
+          revoked_at?: string | null
+          scope_id?: string
+          scope_type?: Database["public"]["Enums"]["governance_scope_type"]
+          tier?: Database["public"]["Enums"]["specialist_tier"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      specialty_clusters: {
+        Row: {
+          active: boolean
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          slug: string
+          terminology_scope: Json
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          slug: string
+          terminology_scope?: Json
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          slug?: string
+          terminology_scope?: Json
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1184,6 +1823,162 @@ export type Database = {
         }
         Relationships: []
       }
+      vetting_panel_members: {
+        Row: {
+          id: string
+          invited_at: string
+          panel_id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invited_at?: string
+          panel_id: string
+          role?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invited_at?: string
+          panel_id?: string
+          role?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vetting_panel_members_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "vetting_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vetting_panel_votes: {
+        Row: {
+          created_at: string
+          id: string
+          panel_id: string
+          reasoning: string
+          vote: Database["public"]["Enums"]["vetting_vote"]
+          voter_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          panel_id: string
+          reasoning: string
+          vote: Database["public"]["Enums"]["vetting_vote"]
+          voter_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          panel_id?: string
+          reasoning?: string
+          vote?: Database["public"]["Enums"]["vetting_vote"]
+          voter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vetting_panel_votes_panel_id_fkey"
+            columns: ["panel_id"]
+            isOneToOne: false
+            referencedRelation: "vetting_panels"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vetting_panels: {
+        Row: {
+          application_id: string
+          closed_at: string | null
+          created_at: string
+          id: string
+          outcome: Database["public"]["Enums"]["vetting_vote"] | null
+          sla_due_at: string
+        }
+        Insert: {
+          application_id: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          outcome?: Database["public"]["Enums"]["vetting_vote"] | null
+          sla_due_at?: string
+        }
+        Update: {
+          application_id?: string
+          closed_at?: string | null
+          created_at?: string
+          id?: string
+          outcome?: Database["public"]["Enums"]["vetting_vote"] | null
+          sla_due_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vetting_panels_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "specialist_applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vocabulary_edit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          effective_at: string
+          high_impact: boolean
+          id: string
+          payload: Json
+          reason: string | null
+          review_window_ends_at: string | null
+          scope_id: string | null
+          scope_type:
+            | Database["public"]["Enums"]["governance_scope_type"]
+            | null
+          target_id: string | null
+          target_type: string
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          effective_at?: string
+          high_impact?: boolean
+          id?: string
+          payload?: Json
+          reason?: string | null
+          review_window_ends_at?: string | null
+          scope_id?: string | null
+          scope_type?:
+            | Database["public"]["Enums"]["governance_scope_type"]
+            | null
+          target_id?: string | null
+          target_type: string
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          effective_at?: string
+          high_impact?: boolean
+          id?: string
+          payload?: Json
+          reason?: string | null
+          review_window_ends_at?: string | null
+          scope_id?: string | null
+          scope_type?:
+            | Database["public"]["Enums"]["governance_scope_type"]
+            | null
+          target_id?: string | null
+          target_type?: string
+        }
+        Relationships: []
+      }
       waves: {
         Row: {
           condition_id: string
@@ -1236,11 +2031,39 @@ export type Database = {
         Args: { _specialty: string; _user_id: string }
         Returns: boolean
       }
+      is_jury_member: {
+        Args: { _jury_id: string; _user_id: string }
+        Returns: boolean
+      }
+      is_panel_member: {
+        Args: { _panel_id: string; _user_id: string }
+        Returns: boolean
+      }
+      user_tier_in_scope: {
+        Args: {
+          _scope_id: string
+          _scope_type: Database["public"]["Enums"]["governance_scope_type"]
+          _user_id: string
+        }
+        Returns: Database["public"]["Enums"]["specialist_tier"]
+      }
     }
     Enums: {
       app_role: "admin" | "specialist" | "researcher"
       code_alias_status: "approved" | "pending" | "rejected"
       code_mapping_relation: "equivalent" | "broader" | "narrower" | "related"
+      election_status:
+        | "upcoming"
+        | "open"
+        | "closed"
+        | "certified"
+        | "cancelled"
+      governance_scope_type: "specialty" | "cluster"
+      jury_decision_type:
+        | "contested_edit"
+        | "application_appeal"
+        | "moderator_action_challenge"
+      jury_status: "forming" | "deliberating" | "decided" | "closed"
       medical_code_kind:
         | "diagnosis"
         | "symptom"
@@ -1271,7 +2094,18 @@ export type Database = {
         | "mapped"
         | "new_code_created"
         | "rejected"
+      recall_status: "initiated" | "open" | "passed" | "failed" | "cancelled"
       redaction_phase: "client_preview" | "server_submit" | "review_rescrub"
+      specialist_application_status:
+        | "draft"
+        | "pending"
+        | "in_review"
+        | "approved"
+        | "rejected"
+        | "needs_info"
+        | "withdrawn"
+      specialist_tier: "contributing" | "core" | "moderator"
+      vetting_vote: "approve" | "reject" | "needs_info"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1402,6 +2236,14 @@ export const Constants = {
       app_role: ["admin", "specialist", "researcher"],
       code_alias_status: ["approved", "pending", "rejected"],
       code_mapping_relation: ["equivalent", "broader", "narrower", "related"],
+      election_status: ["upcoming", "open", "closed", "certified", "cancelled"],
+      governance_scope_type: ["specialty", "cluster"],
+      jury_decision_type: [
+        "contested_edit",
+        "application_appeal",
+        "moderator_action_challenge",
+      ],
+      jury_status: ["forming", "deliberating", "decided", "closed"],
       medical_code_kind: [
         "diagnosis",
         "symptom",
@@ -1437,7 +2279,19 @@ export const Constants = {
         "new_code_created",
         "rejected",
       ],
+      recall_status: ["initiated", "open", "passed", "failed", "cancelled"],
       redaction_phase: ["client_preview", "server_submit", "review_rescrub"],
+      specialist_application_status: [
+        "draft",
+        "pending",
+        "in_review",
+        "approved",
+        "rejected",
+        "needs_info",
+        "withdrawn",
+      ],
+      specialist_tier: ["contributing", "core", "moderator"],
+      vetting_vote: ["approve", "reject", "needs_info"],
     },
   },
 } as const
