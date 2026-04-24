@@ -459,7 +459,15 @@ const Submit = () => {
                   </div>
                   <div>
                     <Label>Year of Diagnosis</Label>
-                    <Input value={yearOfDiagnosis} onChange={(e) => setYearOfDiagnosis(e.target.value)} placeholder="e.g. 2020" />
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1900}
+                      max={new Date().getFullYear()}
+                      value={yearOfDiagnosis}
+                      onChange={(e) => setYearOfDiagnosis(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="e.g. 2020"
+                    />
                   </div>
                   <div>
                     <Label>Time from First Symptom to Diagnosis</Label>
