@@ -249,6 +249,19 @@ const Submit = () => {
       return;
     }
 
+    if (yearOfDiagnosis) {
+      const y = parseInt(yearOfDiagnosis, 10);
+      const currentYear = new Date().getFullYear();
+      if (Number.isNaN(y) || y < 1900 || y > currentYear) {
+        toast({
+          title: "Year of diagnosis is invalid",
+          description: `Please enter a year between 1900 and ${currentYear}.`,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const universalFields = {
       diagnosis_status: diagnosisStatus,
       year_of_diagnosis: yearOfDiagnosis,
@@ -459,7 +472,15 @@ const Submit = () => {
                   </div>
                   <div>
                     <Label>Year of Diagnosis</Label>
-                    <Input value={yearOfDiagnosis} onChange={(e) => setYearOfDiagnosis(e.target.value)} placeholder="e.g. 2020" />
+                    <Input
+                      type="number"
+                      inputMode="numeric"
+                      min={1900}
+                      max={new Date().getFullYear()}
+                      value={yearOfDiagnosis}
+                      onChange={(e) => setYearOfDiagnosis(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      placeholder="e.g. 2020"
+                    />
                   </div>
                   <div>
                     <Label>Time from First Symptom to Diagnosis</Label>
