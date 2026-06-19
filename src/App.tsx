@@ -23,6 +23,8 @@ import TransparencyLog from "./pages/governance/TransparencyLog";
 import Elections from "./pages/governance/Elections";
 import Juries from "./pages/governance/Juries";
 import AdminSpecialists from "./pages/admin/AdminSpecialists";
+import NewProfile from "./pages/specialists/NewProfile";
+import Aliases from "./pages/specialists/Aliases";
 import Legal from "./pages/Legal";
 import { RoleViewProvider } from "./contexts/RoleView";
 import RoleShell from "./components/layouts/RoleShell";
@@ -54,6 +56,8 @@ const App = () => (
                 <Route path="/specialists/panels" element={<Panels />} />
                 <Route path="/specialists/clusters" element={<Clusters />} />
                 <Route path="/specialists/moderation" element={<SpecialistModeration />} />
+                <Route path="/specialists/profiles/new" element={<NewProfile />} />
+                <Route path="/specialists/aliases" element={<Aliases />} />
                 <Route path="/governance" element={<Governance />} />
                 <Route path="/governance/log" element={<TransparencyLog />} />
                 <Route path="/governance/elections" element={<Elections />} />
