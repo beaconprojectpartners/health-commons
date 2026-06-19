@@ -72,14 +72,12 @@ const SpecialistModeration = () => {
         : maxTier === "moderator"
           ? ["core", "moderator", null]
           : ["core", null];
-      let q = supabase
+      const { data, error } = await supabase
         .from("moderation_queue_items")
         .select("id, source, status, priority, required_tier, created_at, pending_code_entries!inner(id, redacted_text, code_system_hint)")
         .in("status", ["awaiting", "in_review", "needs_info"])
         .order("priority", { ascending: false })
         .order("created_at", { ascending: true });
-      // PostgREST `in` doesn't accept null mixed; do two-step filter client-side
-      const { data, error } = await q;
       if (error) throw error;
       return (data ?? []).filter((i) => allowedTiers.includes(i.required_tier as string | null));
     },
