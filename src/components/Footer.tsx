@@ -27,6 +27,12 @@ const Footer = () => (
           <p className="text-sm text-muted-foreground">
             All data is anonymized and freely available for medical research. Attribution encouraged.
           </p>
+          <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2">
+            <Link to="/legal/terms" className="text-sm text-muted-foreground hover:text-foreground">Terms</Link>
+            <Link to="/legal/privacy" className="text-sm text-muted-foreground hover:text-foreground">Privacy</Link>
+            <Link to="/legal/dua" className="text-sm text-muted-foreground hover:text-foreground">Data Use Agreement</Link>
+            <Link to="/legal/conduct" className="text-sm text-muted-foreground hover:text-foreground">Code of Conduct</Link>
+          </div>
         </div>
       </div>
       <div className="mt-8 border-t border-border pt-6 text-center text-xs text-muted-foreground">

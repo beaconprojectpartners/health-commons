@@ -22,6 +22,7 @@ import TransparencyLog from "./pages/governance/TransparencyLog";
 import Elections from "./pages/governance/Elections";
 import Juries from "./pages/governance/Juries";
 import AdminSpecialists from "./pages/admin/AdminSpecialists";
+import Legal from "./pages/Legal";
 
 const queryClient = new QueryClient();
 
@@ -50,6 +51,7 @@ const App = () => (
           <Route path="/governance/elections" element={<Elections />} />
           <Route path="/governance/juries" element={<Juries />} />
           <Route path="/admin/specialists" element={<AdminSpecialists />} />
+          <Route path="/legal/:slug" element={<Legal />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
