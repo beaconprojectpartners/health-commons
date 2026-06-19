@@ -63,6 +63,27 @@
 
     --font-heading: 'Righteous', cursive;
     --font-body: 'Poppins', sans-serif;
+
+    /* Per-role accent — overridden by [data-role-view] below */
+    --role-accent: 172 50% 36%;
+    --role-accent-foreground: 0 0% 100%;
+    --role-accent-soft: 172 50% 95%;
+  }
+
+  html[data-role-view="patient"] {
+    --role-accent: 172 50% 36%;
+    --role-accent-foreground: 0 0% 100%;
+    --role-accent-soft: 172 50% 94%;
+  }
+  html[data-role-view="specialist"] {
+    --role-accent: 250 60% 55%;
+    --role-accent-foreground: 0 0% 100%;
+    --role-accent-soft: 250 60% 96%;
+  }
+  html[data-role-view="researcher"] {
+    --role-accent: 32 90% 48%;
+    --role-accent-foreground: 0 0% 100%;
+    --role-accent-soft: 32 90% 95%;
   }
 
   .dark {
