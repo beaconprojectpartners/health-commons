@@ -8,12 +8,14 @@ export const useAuth = () => {
 
   useEffect(() => {
     let mounted = true;
+    let hydrated = false;
 
     const hydrateSession = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!mounted) return;
       setUser(session?.user ?? null);
       setLoading(false);
+      hydrated = true;
     };
 
     hydrateSession();
@@ -21,7 +23,7 @@ export const useAuth = () => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!mounted) return;
       setUser(session?.user ?? null);
-      setLoading(false);
+      if (hydrated) setLoading(false);
     });
 
     return () => {
