@@ -3,16 +3,20 @@ import { Button } from "@/components/ui/button";
 import { Heart, Menu, X, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import RoleViewSwitcher from "@/components/RoleViewSwitcher";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const { user, loading, signOut } = useAuth();
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-md">
+    <nav
+      className="sticky top-0 z-40 border-b bg-background/80 backdrop-blur-md"
+      style={{ borderColor: "hsl(var(--role-accent) / 0.35)", borderBottomWidth: 2 }}
+    >
       <div className="container mx-auto flex h-16 items-center justify-between px-4">
         <Link to="/" className="flex items-center gap-2">
-          <Heart className="h-6 w-6 text-primary" />
+          <Heart className="h-6 w-6" style={{ color: "hsl(var(--role-accent))" }} />
           <span className="font-heading text-xl text-foreground">DxCommons</span>
         </Link>
 
@@ -30,6 +34,7 @@ const Navbar = () => {
           <Link to="/researchers" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
             For Researchers
           </Link>
+          <RoleViewSwitcher />
           {!loading && (
             user ? (
               <div className="flex items-center gap-3">
@@ -60,6 +65,7 @@ const Navbar = () => {
       {open && (
         <div className="border-t border-border bg-background p-4 md:hidden">
           <div className="flex flex-col gap-3">
+            <RoleViewSwitcher className="h-9 w-full" />
             <Link to="/conditions" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Conditions</Link>
             <Link to="/submit" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Submit Data</Link>
             <Link to="/community" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Community</Link>

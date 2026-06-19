@@ -24,6 +24,8 @@ import Elections from "./pages/governance/Elections";
 import Juries from "./pages/governance/Juries";
 import AdminSpecialists from "./pages/admin/AdminSpecialists";
 import Legal from "./pages/Legal";
+import { RoleViewProvider } from "./contexts/RoleView";
+import RoleShell from "./components/layouts/RoleShell";
 
 const queryClient = new QueryClient();
 
@@ -34,28 +36,32 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <SessionGuard />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/conditions" element={<Conditions />} />
-          <Route path="/conditions/:slug" element={<ConditionDetail />} />
-          <Route path="/submit" element={<Submit />} />
-          <Route path="/researchers" element={<Researchers />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/community" element={<Community />} />
-          <Route path="/specialists" element={<SpecialistsHub />} />
-          <Route path="/specialists/apply" element={<SpecialistApply />} />
-          <Route path="/specialists/panels" element={<Panels />} />
-          <Route path="/specialists/clusters" element={<Clusters />} />
-          <Route path="/specialists/moderation" element={<SpecialistModeration />} />
-          <Route path="/governance" element={<Governance />} />
-          <Route path="/governance/log" element={<TransparencyLog />} />
-          <Route path="/governance/elections" element={<Elections />} />
-          <Route path="/governance/juries" element={<Juries />} />
-          <Route path="/admin/specialists" element={<AdminSpecialists />} />
-          <Route path="/legal/:slug" element={<Legal />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <RoleViewProvider>
+          <RoleShell>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/conditions" element={<Conditions />} />
+              <Route path="/conditions/:slug" element={<ConditionDetail />} />
+              <Route path="/submit" element={<Submit />} />
+              <Route path="/researchers" element={<Researchers />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/community" element={<Community />} />
+              <Route path="/specialists" element={<SpecialistsHub />} />
+              <Route path="/specialists/apply" element={<SpecialistApply />} />
+              <Route path="/specialists/panels" element={<Panels />} />
+              <Route path="/specialists/clusters" element={<Clusters />} />
+              <Route path="/specialists/moderation" element={<SpecialistModeration />} />
+              <Route path="/governance" element={<Governance />} />
+              <Route path="/governance/log" element={<TransparencyLog />} />
+              <Route path="/governance/elections" element={<Elections />} />
+              <Route path="/governance/juries" element={<Juries />} />
+              <Route path="/admin/specialists" element={<AdminSpecialists />} />
+              <Route path="/legal/:slug" element={<Legal />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </RoleShell>
+        </RoleViewProvider>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
