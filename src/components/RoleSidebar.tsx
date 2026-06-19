@@ -33,6 +33,7 @@ const groupsByRole: Record<RoleView, Group[]> = {
         { title: "Panels",     url: "/specialists/panels",     icon: Users },
         { title: "Clusters",   url: "/specialists/clusters",   icon: Layers },
         { title: "Apply",      url: "/specialists/apply",      icon: FileText },
+        { title: "Community",  url: "/community",              icon: MessageSquare },
       ],
     },
     {
@@ -60,6 +61,7 @@ const groupsByRole: Record<RoleView, Group[]> = {
         { title: "Conditions",     url: "/conditions",   icon: Database },
         { title: "Favorites",      url: "/researchers#favorites", icon: Star },
         { title: "API Access",     url: "/researchers#api", icon: Code2 },
+        { title: "Community",      url: "/community",   icon: MessageSquare },
       ],
     },
   ],
