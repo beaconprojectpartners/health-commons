@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Heart, Menu, X, LogOut, User, ClipboardList, FlaskConical } from "lucide-react";
+import { Heart, Menu, X, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import RoleViewSwitcher from "@/components/RoleViewSwitcher";
