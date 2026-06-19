@@ -9,7 +9,7 @@ const RoleShell = ({ children }: { children: ReactNode }) => {
         <RoleSidebar />
         <div className="flex-1 relative min-w-0">
           <SidebarTrigger
-            className="absolute left-2 top-2 z-50"
+            className="absolute left-2 bottom-4 z-50"
             style={{ color: "hsl(var(--role-accent))" }}
           />
           {children}
