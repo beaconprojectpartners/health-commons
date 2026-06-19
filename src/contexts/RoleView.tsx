@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from "react-router-dom";
 export type RoleView = "patient" | "specialist" | "researcher";
 
 type Ctx = { role: RoleView; setRole: (r: RoleView) => void };
-const RoleViewCtx = createContext<Ctx | null>(null);
+const RoleViewCtx = createContext<Ctx>({ role: "patient", setRole: () => {} });
 
 const STORAGE_KEY = "dxc.role-view";
 
@@ -44,11 +44,7 @@ export const RoleViewProvider = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export const useRoleView = () => {
-  const ctx = useContext(RoleViewCtx);
-  if (!ctx) throw new Error("useRoleView must be used inside RoleViewProvider");
-  return ctx;
-};
+export const useRoleView = () => useContext(RoleViewCtx);
 
 export const roleMeta: Record<RoleView, { label: string; color: string; dot: string }> = {
   patient:    { label: "Patient",    color: "hsl(var(--role-accent))", dot: "hsl(172 50% 36%)" },
