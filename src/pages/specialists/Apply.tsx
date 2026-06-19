@@ -131,6 +131,15 @@ const SpecialistApply = () => {
     return () => { ctrl.abort(); clearTimeout(t); };
   }, [conditionSearch]);
 
+  // Auto-lookup when user types a full 10-digit NPI
+  useEffect(() => {
+    if (npi.length !== 10) return;
+    if (looking) return;
+    if (lookup && (lookup as any)._npi === npi) return;
+    lookupNpi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [npi]);
+
   const showForm = useMemo(() => {
     if (!existingApp) return true;
     if (forceReapply) return true;
