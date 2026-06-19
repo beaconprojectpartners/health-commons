@@ -66,7 +66,10 @@ const Navbar = () => {
         <div className="border-t border-border bg-background p-4 md:hidden">
           <div className="flex flex-col gap-3">
             <RoleViewSwitcher className="h-9 w-full" />
-            <Link to="/specialists" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Professionals</Link>
+            <Link to="/conditions" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Conditions</Link>
+            <Link to="/submit" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">Submit Data</Link>
+            <Link to="/specialists" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">For Professionals</Link>
+            <Link to="/researchers" onClick={() => setOpen(false)} className="text-sm text-muted-foreground">For Researchers</Link>
             {!loading && (
               user ? (
                 <>
