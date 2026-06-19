@@ -12,9 +12,6 @@ export default defineConfig(({ mode }) => ({
       overlay: false,
     },
   },
-  define: {
-    __SENTRY_DSN__: JSON.stringify(process.env.SENTRY_DSN || ""),
-  },
   plugins: [react(), mode === "development" && componentTagger()].filter(Boolean),
   resolve: {
     alias: {
