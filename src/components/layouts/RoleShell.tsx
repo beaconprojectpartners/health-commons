@@ -1,19 +1,17 @@
 import { ReactNode } from "react";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { useRoleView } from "@/contexts/RoleView";
-import SpecialistSidebar from "@/components/SpecialistSidebar";
+import RoleSidebar from "@/components/RoleSidebar";
 
 const RoleShell = ({ children }: { children: ReactNode }) => {
-  const { role } = useRoleView();
-
-  if (role !== "specialist") return <>{children}</>;
-
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full">
-        <SpecialistSidebar />
-        <div className="flex-1 relative">
-          <SidebarTrigger className="absolute left-2 top-2 z-50 md:hidden" />
+        <RoleSidebar />
+        <div className="flex-1 relative min-w-0">
+          <SidebarTrigger
+            className="absolute left-2 top-2 z-50"
+            style={{ color: "hsl(var(--role-accent))" }}
+          />
           {children}
         </div>
       </div>
