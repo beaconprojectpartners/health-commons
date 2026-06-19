@@ -50,6 +50,7 @@ const SpecialistApply = () => {
   const [primaryCode, setPrimaryCode] = useState<string>("");
   const [looking, setLooking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lastLookedUpNpi, setLastLookedUpNpi] = useState<string>("");
 
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
@@ -131,6 +132,13 @@ const SpecialistApply = () => {
     return () => { ctrl.abort(); clearTimeout(t); };
   }, [conditionSearch]);
 
+  // Auto-lookup when user types a full 10-digit NPI
+  useEffect(() => {
+    if (npi.length !== 10 || looking || lastLookedUpNpi === npi) return;
+    lookupNpi();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [npi]);
+
   const showForm = useMemo(() => {
     if (!existingApp) return true;
     if (forceReapply) return true;
@@ -166,6 +174,7 @@ const SpecialistApply = () => {
     setLookup(null);
     const { data, error } = await supabase.functions.invoke("nppes-lookup", { body: { npi } });
     setLooking(false);
+    setLastLookedUpNpi(npi);
     if (error) {
       toast({ title: "Lookup failed", description: error.message, variant: "destructive" });
       return;
@@ -218,8 +227,20 @@ const SpecialistApply = () => {
     if (!user) return;
     const npiOk = npiSchema.safeParse(npi);
     const emailOk = emailSchema.safeParse(email);
-    if (!npiOk.success || !emailOk.success || !lookup?.found || !primaryCode) {
-      toast({ title: "Missing required fields", description: "NPI lookup, institutional email, and primary specialty are required.", variant: "destructive" });
+    if (!npiOk.success) {
+      toast({ title: "NPI required", description: "Enter a valid 10-digit NPI.", variant: "destructive" });
+      return;
+    }
+    if (!lookup?.found) {
+      toast({ title: "Verify your NPI", description: "Click the search button next to your NPI to look up your provider record.", variant: "destructive" });
+      return;
+    }
+    if (!primaryCode) {
+      toast({ title: "Select a primary specialty", description: "Choose your primary specialty in the verified provider card above.", variant: "destructive" });
+      return;
+    }
+    if (!emailOk.success) {
+      toast({ title: "Institutional email required", description: "Enter a valid institutional email address.", variant: "destructive" });
       return;
     }
     if (selectedConditionIds.length === 0) {
