@@ -1,8 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
-  Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
+  Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupContent, SidebarGroupLabel,
   SidebarMenu, SidebarMenuButton, SidebarMenuItem, useSidebar,
 } from "@/components/ui/sidebar";
+import { SidebarTrigger } from "@/components/ui/sidebar";
 import {
   LayoutDashboard, ShieldCheck, Layers, Users, FileText, Gavel, Vote, BookOpen, Settings,
   Stethoscope, ClipboardList, MessageSquare, UserCircle, Search, Database, Star, Code2,
@@ -105,6 +106,15 @@ const RoleSidebar = () => {
           </SidebarGroup>
         ))}
       </SidebarContent>
+      <SidebarFooter
+        className="border-t"
+        style={{ borderColor: "hsl(var(--role-accent) / 0.25)" }}
+      >
+        <SidebarTrigger
+          className="ml-1"
+          style={{ color: "hsl(var(--role-accent))" }}
+        />
+      </SidebarFooter>
     </Sidebar>
   );
 };
