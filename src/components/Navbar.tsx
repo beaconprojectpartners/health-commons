@@ -22,17 +22,8 @@ const Navbar = () => {
 
         {/* Desktop */}
         <div className="hidden items-center gap-6 md:flex">
-          <Link to="/conditions" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Conditions
-          </Link>
-          <Link to="/submit" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Submit Data
-          </Link>
-          <Link to="/community" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            Community
-          </Link>
-          <Link to="/researchers" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
-            For Researchers
+          <Link to="/specialists" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+            Professionals
           </Link>
           <RoleViewSwitcher />
           {!loading && (
