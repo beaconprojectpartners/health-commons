@@ -17,6 +17,7 @@ import SpecialistApply from "./pages/specialists/Apply";
 import SpecialistsHub from "./pages/specialists/SpecialistsHub";
 import Panels from "./pages/specialists/Panels";
 import Clusters from "./pages/specialists/Clusters";
+import SpecialistModeration from "./pages/specialists/Moderation";
 import Governance from "./pages/governance/Governance";
 import TransparencyLog from "./pages/governance/TransparencyLog";
 import Elections from "./pages/governance/Elections";
@@ -46,6 +47,7 @@ const App = () => (
           <Route path="/specialists/apply" element={<SpecialistApply />} />
           <Route path="/specialists/panels" element={<Panels />} />
           <Route path="/specialists/clusters" element={<Clusters />} />
+          <Route path="/specialists/moderation" element={<SpecialistModeration />} />
           <Route path="/governance" element={<Governance />} />
           <Route path="/governance/log" element={<TransparencyLog />} />
           <Route path="/governance/elections" element={<Elections />} />
