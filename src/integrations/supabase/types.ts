@@ -296,6 +296,36 @@ export type Database = {
         }
         Relationships: []
       }
+      consent_log: {
+        Row: {
+          accepted_at: string
+          context: string | null
+          created_at: string
+          doc_slug: string
+          doc_version: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          accepted_at?: string
+          context?: string | null
+          created_at?: string
+          doc_slug: string
+          doc_version: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          accepted_at?: string
+          context?: string | null
+          created_at?: string
+          doc_slug?: string
+          doc_version?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       disease_profiles: {
         Row: {
           approved_at: string | null
@@ -695,6 +725,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      legal_documents: {
+        Row: {
+          content: Json
+          created_at: string
+          effective_at: string
+          id: string
+          slug: string
+          title: string
+          updated_at: string
+          version: string
+        }
+        Insert: {
+          content?: Json
+          created_at?: string
+          effective_at?: string
+          id?: string
+          slug: string
+          title: string
+          updated_at?: string
+          version?: string
+        }
+        Update: {
+          content?: Json
+          created_at?: string
+          effective_at?: string
+          id?: string
+          slug?: string
+          title?: string
+          updated_at?: string
+          version?: string
+        }
+        Relationships: []
       }
       match_reports: {
         Row: {
