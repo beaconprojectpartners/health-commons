@@ -218,8 +218,20 @@ const SpecialistApply = () => {
     if (!user) return;
     const npiOk = npiSchema.safeParse(npi);
     const emailOk = emailSchema.safeParse(email);
-    if (!npiOk.success || !emailOk.success || !lookup?.found || !primaryCode) {
-      toast({ title: "Missing required fields", description: "NPI lookup, institutional email, and primary specialty are required.", variant: "destructive" });
+    if (!npiOk.success) {
+      toast({ title: "NPI required", description: "Enter a valid 10-digit NPI.", variant: "destructive" });
+      return;
+    }
+    if (!lookup?.found) {
+      toast({ title: "Verify your NPI", description: "Click the search button next to your NPI to look up your provider record.", variant: "destructive" });
+      return;
+    }
+    if (!primaryCode) {
+      toast({ title: "Select a primary specialty", description: "Choose your primary specialty in the verified provider card above.", variant: "destructive" });
+      return;
+    }
+    if (!emailOk.success) {
+      toast({ title: "Institutional email required", description: "Enter a valid institutional email address.", variant: "destructive" });
       return;
     }
     if (selectedConditionIds.length === 0) {
