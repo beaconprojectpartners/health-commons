@@ -50,6 +50,7 @@ const SpecialistApply = () => {
   const [primaryCode, setPrimaryCode] = useState<string>("");
   const [looking, setLooking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [lastLookedUpNpi, setLastLookedUpNpi] = useState<string>("");
 
   const [conditions, setConditions] = useState<ConditionRow[]>([]);
   const [selectedConditionIds, setSelectedConditionIds] = useState<string[]>([]);
@@ -133,9 +134,7 @@ const SpecialistApply = () => {
 
   // Auto-lookup when user types a full 10-digit NPI
   useEffect(() => {
-    if (npi.length !== 10) return;
-    if (looking) return;
-    if (lookup && (lookup as any)._npi === npi) return;
+    if (npi.length !== 10 || looking || lastLookedUpNpi === npi) return;
     lookupNpi();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [npi]);
@@ -175,6 +174,7 @@ const SpecialistApply = () => {
     setLookup(null);
     const { data, error } = await supabase.functions.invoke("nppes-lookup", { body: { npi } });
     setLooking(false);
+    setLastLookedUpNpi(npi);
     if (error) {
       toast({ title: "Lookup failed", description: error.message, variant: "destructive" });
       return;
