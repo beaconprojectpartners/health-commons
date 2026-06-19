@@ -3,7 +3,7 @@ import * as Sentry from "@sentry/react";
 import App from "./App.tsx";
 import "./index.css";
 
-const dsn = import.meta.env.VITE_SENTRY_DSN;
+const dsn = (window as any).__SENTRY_DSN__ || __SENTRY_DSN__;
 if (dsn) {
   Sentry.init({
     dsn,
